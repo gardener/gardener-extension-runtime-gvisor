@@ -1,0 +1,68 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gardener-extension-runtime-gvisor
+  labels:
+    app.kubernetes.io/name: gardener-extension-runtime-gvisor
+    helm.sh/chart: gardener-extension-runtime-gvisor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+rules:
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - containerruntimes
+  - containerruntimes/status
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - secrets/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - events
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - runtime-gvisor-leader-election
+  verbs:
+  - get
+  - watch
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gardener-extension-runtime-gvisor
+  labels:
+    app.kubernetes.io/name: gardener-extension-runtime-gvisor
+    helm.sh/chart: gardener-extension-runtime-gvisor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gardener-extension-runtime-gvisor
+subjects:
+- kind: ServiceAccount
+  name: gardener-extension-runtime-gvisor
+  namespace: {{ .Release.Namespace }}
