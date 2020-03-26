@@ -1,5 +1,3 @@
-// +build tools
-
 // Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+// +k8s:deepcopy-gen=package
+// +groupName="gvisor.runtime.extensions.config.gardener.cloud"
 
-import (
-	_ "github.com/gardener/gardener-extensions/hack"
-	_ "github.com/gardener/gardener-extensions/hack/.ci"
-	_ "github.com/gardener/gardener-extensions/hack/api-reference/template"
+//go:generate ../../../hack/generate-code
 
-	_ "github.com/ahmetb/gen-crd-api-reference-docs"
-	_ "github.com/gobuffalo/packr/v2/packr2"
-	_ "github.com/onsi/ginkgo/ginkgo"
-	_ "k8s.io/code-generator"
-)
+package config // import "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config"

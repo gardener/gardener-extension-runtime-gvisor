@@ -1,5 +1,3 @@
-// +build tools
-
 // Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package main
 
 import (
-	_ "github.com/gardener/gardener-extensions/hack"
-	_ "github.com/gardener/gardener-extensions/hack/.ci"
-	_ "github.com/gardener/gardener-extensions/hack/api-reference/template"
+	"github.com/gardener/gardener-extension-runtime-gvisor/cmd/gardener-extension-runtime-gvisor/app"
 
-	_ "github.com/ahmetb/gen-crd-api-reference-docs"
-	_ "github.com/gobuffalo/packr/v2/packr2"
-	_ "github.com/onsi/ginkgo/ginkgo"
-	_ "k8s.io/code-generator"
+	"github.com/gardener/gardener-extensions/pkg/controller"
+	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener-extensions/pkg/log"
+	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+func main() {
+	runtimelog.SetLogger(log.ZapLogger(false))
+	cmd := app.NewControllerManagerCommand(controller.SetupSignalHandlerContext())
+
+	if err := cmd.Execute(); err != nil {
+		controllercmd.LogErrAndExit(err, "error executing the main controller command")
+	}
+}

@@ -24,6 +24,12 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := true
 
+### GVisor version: https://github.com/google/gvisor/releases
+RUNSC_VERSION				 	:= 20200219.0
+
+### GVisor containerd shim version: https://github.com/google/gvisor-containerd-shim/releases
+CONTAINERD_RUNSC_SHIM_VERSION 	:= v0.0.4
+
 ### Build commands
 
 .PHONY: format
@@ -51,14 +57,23 @@ verify: check generate test format
 
 .PHONY: install
 install:
-	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
+	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION) \
+			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.gitVersion=$(VERSION) \
+			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.gitTreeState=$(shell sh -c '[ -z git status --porcelain 2>/dev/null ] && echo clean || echo dirty') \
+			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.gitCommit=$(shell sh -c 'git rev-parse --verify HEAD') \
+			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.buildDate=$(shell sh -c 'date --iso-8601=seconds')" \
 	$(REPO_ROOT)/vendor/github.com/gardener/gardener-extensions/hack/install.sh ./...
 
 .PHONY: install-requirements
 install-requirements:
+	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/ahmetb/gen-crd-api-reference-docs
 	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/gobuffalo/packr/v2/packr2
 	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/onsi/ginkgo/ginkgo
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener-extensions/hack/install-requirements.sh
+
+.PHONY: install-binaries
+install-binaries:
+	@bash $(HACK_DIR)/install-binaries.sh $(RUNSC_VERSION) $(CONTAINERD_RUNSC_SHIM_VERSION)
 
 .PHONY: all
 ifeq ($(VERIFY),true)

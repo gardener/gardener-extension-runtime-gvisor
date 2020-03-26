@@ -1,5 +1,3 @@
-// +build tools
-
 // Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package install
 
 import (
-	_ "github.com/gardener/gardener-extensions/hack"
-	_ "github.com/gardener/gardener-extensions/hack/.ci"
-	_ "github.com/gardener/gardener-extensions/hack/api-reference/template"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
 
-	_ "github.com/ahmetb/gen-crd-api-reference-docs"
-	_ "github.com/gobuffalo/packr/v2/packr2"
-	_ "github.com/onsi/ginkgo/ginkgo"
-	_ "k8s.io/code-generator"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
+
+var (
+	schemeBuilder = runtime.NewSchemeBuilder(
+		v1alpha1.AddToScheme,
+		config.AddToScheme,
+		setVersionPriority,
+	)
+
+	// AddToScheme adds all APIs to the scheme.
+	AddToScheme = schemeBuilder.AddToScheme
+)
+
+func setVersionPriority(scheme *runtime.Scheme) error {
+	return scheme.SetVersionPriority(v1alpha1.SchemeGroupVersion)
+}
+
+// Install installs all APIs in the scheme.
+func Install(scheme *runtime.Scheme) {
+	utilruntime.Must(AddToScheme(scheme))
+}

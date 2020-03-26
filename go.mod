@@ -3,17 +3,24 @@ module github.com/gardener/gardener-extension-runtime-gvisor
 go 1.13
 
 require (
-	github.com/gardener/gardener v1.1.1
-	github.com/gardener/gardener-extensions v1.4.0
+	github.com/ahmetb/gen-crd-api-reference-docs v0.1.5
+	github.com/gardener/gardener v1.1.1-0.20200325095330-fdfc5165faf3
+	github.com/gardener/gardener-extensions v1.5.1-0.20200325094838-72f67326b19c
+	github.com/gardener/gardener-resource-manager v0.10.0
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.1.0
+	github.com/golang/mock v1.3.1
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
+	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
-	gopkg.in/yaml.v2 v2.2.7
-	k8s.io/api v0.0.0-20191010143144-fbf594f18f80
-	k8s.io/apimachinery v0.0.0-20191016060620-86f2f1b9c076
-	k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
+	github.com/spf13/pflag v1.0.5
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.0
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/code-generator v0.17.0
+	k8s.io/component-base v0.17.0
+	k8s.io/helm v2.16.1+incompatible
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 

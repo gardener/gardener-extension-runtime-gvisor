@@ -1,0 +1,9 @@
+images:
+  runtime-gvisor: "image-repository:image-tag"
+
+config:
+  binFolder: /var/bin/containerruntimes
+
+  nodeSelector:
+    worker.gardener.cloud/cri-name: containerd
+    containerruntime.worker.gardener.cloud/gvisor: "true"

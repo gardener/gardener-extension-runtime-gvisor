@@ -1,5 +1,3 @@
-// +build tools
-
 // Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package charts_test
 
 import (
-	_ "github.com/gardener/gardener-extensions/hack"
-	_ "github.com/gardener/gardener-extensions/hack/.ci"
-	_ "github.com/gardener/gardener-extensions/hack/api-reference/template"
+	"testing"
 
-	_ "github.com/ahmetb/gen-crd-api-reference-docs"
-	_ "github.com/gobuffalo/packr/v2/packr2"
-	_ "github.com/onsi/ginkgo/ginkgo"
-	_ "k8s.io/code-generator"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
+
+func TestCharts(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Gvisor Charts Test Suite")
+}
