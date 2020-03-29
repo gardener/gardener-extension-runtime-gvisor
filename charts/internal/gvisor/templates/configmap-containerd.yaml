@@ -21,7 +21,7 @@ data:
 
     echo "Configure ContainerD"
     FILENAME=/var/host/etc/containerd/config.toml
-    VERSION=$(head -n 1 $FILENAME)
+    VERSION="$(head -n 1 $FILENAME)"
 
     if [ "$VERSION" == "version = 2" ]
     then
