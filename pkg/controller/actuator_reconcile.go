@@ -30,6 +30,7 @@ import (
 
 const (
 	GVisorRuntimeSecretName = "extension-runtime-gvisor"
+	GVisorRuntimeManagedResourceName = "extension-runtime-gvisor"
 )
 
 // Reconcile implements ContainerRuntime.Actuator.
