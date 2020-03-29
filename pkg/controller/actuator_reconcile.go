@@ -53,7 +53,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 
 	return manager.
 		NewManagedResource(a.client).
-		WithNamespacedName(cr.Namespace, GVisorRuntimeSecretName).
+		WithNamespacedName(cr.Namespace, GVisorRuntimeManagedResourceName).
 		WithSecretRefs(secretRefs).
 		WithInjectedLabels(map[string]string{common.ShootNoCleanup: "true"}).
 		Reconcile(ctx)
