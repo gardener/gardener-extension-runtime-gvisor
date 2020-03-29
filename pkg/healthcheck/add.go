@@ -52,7 +52,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) 
 		[]healthcheck.ConditionTypeToHealthCheck{
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
-				HealthCheck:   general.CheckManagedResource(gvisorcontroller.GVisorRuntimeSecretName),
+				HealthCheck:   general.CheckManagedResource(gvisorcontroller.GVisorRuntimeManagedResourceName),
 			},
 		},
 	)
