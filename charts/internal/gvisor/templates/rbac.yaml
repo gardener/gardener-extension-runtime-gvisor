@@ -29,6 +29,7 @@ metadata:
   name: gvisor
 rules:
   - apiGroups:
+      - extensions
       - policy
     resourceNames:
       - gvisor
