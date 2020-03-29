@@ -10,7 +10,7 @@ data:
     BIN_TARGET_DIR="{{.Values.config.binFolder }}"
 
     echo "Creating container-runtime binary folder if not exist"
-    mkdir -p /var/host/$BIN_TARGET_DIR
+    mkdir -p "/var/host/$BIN_TARGET_DIR"
 
     echo "Copy GVisor Binaries"
     cd /var/content
