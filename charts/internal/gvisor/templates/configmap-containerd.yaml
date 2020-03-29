@@ -15,7 +15,7 @@ data:
     echo "Copy GVisor Binaries"
     cd /var/content
     chmod +x runsc
-    mv runsc /var/host/$BIN_TARGET_DIR
+    mv runsc "/var/host/$BIN_TARGET_DIR"
     chmod +x containerd-shim-runsc-v1.linux-amd64
     mv containerd-shim-runsc-v1.linux-amd64  /var/host/$BIN_TARGET_DIR/containerd-shim-runsc-v1
 
