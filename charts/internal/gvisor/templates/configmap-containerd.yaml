@@ -7,7 +7,7 @@ data:
   install-gvisor-containerd.sh: |-
     #!/bin/sh
 
-    BIN_TARGET_DIR={{.Values.config.binFolder }}
+    BIN_TARGET_DIR="{{.Values.config.binFolder }}"
 
     echo "Creating container-runtime binary folder if not exist"
     mkdir -p /var/host/$BIN_TARGET_DIR
