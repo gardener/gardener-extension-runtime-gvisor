@@ -17,7 +17,7 @@ data:
     chmod +x runsc
     mv runsc "/var/host/$BIN_TARGET_DIR"
     chmod +x containerd-shim-runsc-v1.linux-amd64
-    mv containerd-shim-runsc-v1.linux-amd64  /var/host/$BIN_TARGET_DIR/containerd-shim-runsc-v1
+    mv containerd-shim-runsc-v1.linux-amd64 "/var/host/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
 
     echo "Configure ContainerD"
     FILENAME=/var/host/etc/containerd/config.toml
