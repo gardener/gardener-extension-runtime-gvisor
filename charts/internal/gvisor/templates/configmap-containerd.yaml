@@ -38,16 +38,3 @@ data:
     while true; do
     	sleep 3600;
     done
-  uninstall-gvisor-containerd.sh: |-
-    #!/bin/sh
-
-    BIN_TARGET_DIR={{.Values.config.binFolder }}
-
-    echo "Delete GVisor Binaries"
-    rm -rf /var/host/$BIN_TARGET_DIR/runsc
-    rm -rf /var/host/$BIN_TARGET_DIR/containerd-shim-runsc-v1
-
-    echo "Reconfigure ContainerD"
-    FILENAME=/var/host/etc/containerd/config.toml
-
-    sed -i -e '/runsc/d' $FILENAME

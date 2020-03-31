@@ -28,10 +28,6 @@ spec:
       - name: container-runtime-gvisor-containerd
         image: {{ index .Values.images "runtime-gvisor" }}
         command: ["/scripts/install-gvisor-containerd.sh"]
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/scripts/uninstall-gvisor-containerd.sh"]
         securityContext:
           privileged: true
         volumeMounts:
