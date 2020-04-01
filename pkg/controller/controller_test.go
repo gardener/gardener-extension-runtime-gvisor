@@ -16,27 +16,30 @@ package controller_test
 
 import (
 	"context"
-	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+	"fmt"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	mockextensionscontroller "github.com/gardener/gardener-extensions/pkg/mock/gardener-extensions/controller"
 	mockchartrenderer "github.com/gardener/gardener-extensions/pkg/mock/gardener/chartrenderer"
+	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/helm/pkg/manifest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 const (
@@ -49,15 +52,22 @@ var _ = Describe("Chart package test", func() {
 		var (
 			ctrl            = gomock.NewController(GinkgoT())
 			crf             = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
-			client          = mockclient.NewMockClient(ctrl)
+			mockClient      = mockclient.NewMockClient(ctrl)
 			ctx             = context.TODO()
 			chartName       = "chartName"
 			manifestContent = "manifestContent"
 			namespaceName   = "namespace"
+			workerGroup     = "worker-gvisor"
 			cr              = &extensionsv1alpha1.ContainerRuntime{
-				ObjectMeta: metav1.ObjectMeta{Namespace: namespaceName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: namespaceName, Name: "test-cr"},
 				Spec: extensionsv1alpha1.ContainerRuntimeSpec{
 					BinaryPath: "/path/test",
+					WorkerPool: extensionsv1alpha1.ContainerRuntimeWorkerPool{
+						Name: workerGroup,
+						Selector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"worker.gardener.cloud/pool": "gvisor-pool"},
+						},
+					},
 					DefaultSpec: extensionsv1alpha1.DefaultSpec{
 						Type: "type"}}}
 			cluster = &extensionscontroller.Cluster{
@@ -74,10 +84,14 @@ var _ = Describe("Chart package test", func() {
 
 		// Create actuator
 		a := controller.NewActuator(crf)
-		client = mockclient.NewMockClient(ctrl)
-		a.(inject.Client).InjectClient(client)
+		mockClient = mockclient.NewMockClient(ctrl)
 
-		It("Reconcile correctly", func() {
+		BeforeSuite(func() {
+			err := a.(inject.Client).InjectClient(mockClient)
+			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		It("Reconcile correctly - first ContainerRuntime", func() {
 
 			// Create mock chart renderer and factory
 			chartRenderer := mockchartrenderer.NewMockInterface(ctrl)
@@ -86,60 +100,222 @@ var _ = Describe("Chart package test", func() {
 				ChartName: chartName,
 				Manifests: []manifest.Manifest{{Content: manifestContent}},
 			}
+
+			// ---------- gVisor Preparation -------------------
+			// mockClient retrieves extension-runtime-gvisor managed resource - not found
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			// chart renderer renders chart with path "gvisor"
 			chartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
-
-			errNotFound := &errors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}}
-
-			// Validate deployed secret
-			deployedSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorRuntimeSecretName, Namespace: namespaceName},
+			// mockClient creates or update secret for managed resource "extension-runtime-gvisor"
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorSecretName, Namespace: namespaceName},
 				Data:       map[string][]byte{charts.GVisorConfigKey: renderedChart.Manifest()},
 				Type:       corev1.SecretTypeOpaque,
 			}
-			client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
-			client.EXPECT().Create(ctx, deployedSecret).Return(nil)
-
-			// Validate deployed managed resource
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, secret).Return(nil)
+			// Validate deployed managed resource "extension-runtime-gvisor"
 			managedResource := &resourcemanagerv1alpha1.ManagedResource{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorRuntimeSecretName, Namespace: namespaceName},
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 				Spec: resourcemanagerv1alpha1.ManagedResourceSpec{
 					SecretRefs: []corev1.LocalObjectReference{
-						{Name: controller.GVisorRuntimeSecretName},
+						{Name: controller.GVisorSecretName},
 					},
-					InjectLabels: map[string]string{extensionscontroller.ShootNoCleanupLabel: "true"},
 				},
 			}
-			client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
-			client.EXPECT().Create(ctx, managedResource).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, managedResource).Return(nil)
 
-			// Create mock client
+			// ---------- gVisor Installation -------------------
+			chartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
+			// Validate deployed secret
+			installationSecretName := fmt.Sprintf("%s-%s", controller.GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)
+			installationSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: installationSecretName, Namespace: namespaceName},
+				Data:       map[string][]byte{charts.GVisorConfigKey: renderedChart.Manifest()},
+				Type:       corev1.SecretTypeOpaque,
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, installationSecret).Return(nil)
+
+			// Validate deployed managed resource
+			installationMResourceName := fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
+			managedResourceInstallation := &resourcemanagerv1alpha1.ManagedResource{
+				ObjectMeta: metav1.ObjectMeta{Name: installationMResourceName, Namespace: namespaceName},
+				Spec: resourcemanagerv1alpha1.ManagedResourceSpec{
+					SecretRefs: []corev1.LocalObjectReference{
+						{Name: installationSecretName},
+					},
+				},
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, managedResourceInstallation).Return(nil)
+
+			// Create mock mockClient
 			err := a.Reconcile(ctx, cr, cluster)
 
-			//client.EXPECT().Create()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("Delete correctly", func() {
+		It("Reconcile correctly - add additional worker pool with gVisor", func() {
+
+			// Create mock chart renderer and factory
+			chartRenderer := mockchartrenderer.NewMockInterface(ctrl)
+			crf.EXPECT().NewChartRendererForShoot(shootVersion).Return(chartRenderer, nil)
+			renderedChart := &chartrenderer.RenderedChart{
+				ChartName: chartName,
+				Manifests: []manifest.Manifest{{Content: manifestContent}},
+			}
+
+			// mockClient retrieves extension-runtime-gvisor managed resource - already exists
+			mockClient.EXPECT().Get(context.TODO(), gomock.Any(), gomock.Any()).Return(nil)
+
+			// ---------- gVisor Installation -------------------
+			chartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
+			// Validate deployed secret
+			installationSecretName := fmt.Sprintf("%s-%s", controller.GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)
+			installationSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: installationSecretName, Namespace: namespaceName},
+				Data:       map[string][]byte{charts.GVisorConfigKey: renderedChart.Manifest()},
+				Type:       corev1.SecretTypeOpaque,
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, installationSecret).Return(nil)
+
+			// Validate deployed managed resource
+			installationMResourceName := fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
+			managedResourceInstallation := &resourcemanagerv1alpha1.ManagedResource{
+				ObjectMeta: metav1.ObjectMeta{Name: installationMResourceName, Namespace: namespaceName},
+				Spec: resourcemanagerv1alpha1.ManagedResourceSpec{
+					SecretRefs: []corev1.LocalObjectReference{
+						{Name: installationSecretName},
+					},
+				},
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, managedResourceInstallation).Return(nil)
+
+			// Create mock mockClient
+			err := a.Reconcile(ctx, cr, cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Delete correctly - shoot does not require gVisor any more", func() {
+
+			// ---------- Deletion of GVisor Installation -------------------
+
+			// Validate deployed managed resource
+			installationManagedResource := &resourcemanagerv1alpha1.ManagedResource{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), Namespace: namespaceName},
+			}
+			mockClient.EXPECT().Delete(ctx, installationManagedResource).Return(nil)
 
 			// Validate deleted secret
-			deployedSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorRuntimeSecretName, Namespace: namespaceName},
+			installationSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", controller.GVisorInstallationSecretName, cr.Spec.WorkerPool.Name), Namespace: namespaceName},
 			}
-			//client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			client.EXPECT().Delete(ctx, deployedSecret).Return(nil)
+			mockClient.EXPECT().Delete(ctx, installationSecret).Return(nil)
+			// wait for managed resource to be deleted
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+
+			// ---------- Deletion of GVisor Prerequisites -------------------
+
+			mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&extensionsv1alpha1.ContainerRuntimeList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+				Expect(list).To(BeAssignableToTypeOf(&extensionsv1alpha1.ContainerRuntimeList{}))
+				now := metav1.Now()
+				list.(*extensionsv1alpha1.ContainerRuntimeList).Items = []extensionsv1alpha1.ContainerRuntime{
+					{
+						ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now},
+						Spec: extensionsv1alpha1.ContainerRuntimeSpec{
+							DefaultSpec: extensionsv1alpha1.DefaultSpec{Type: gvisor.Type},
+						},
+					},
+					{
+						Spec: extensionsv1alpha1.ContainerRuntimeSpec{
+							DefaultSpec: extensionsv1alpha1.DefaultSpec{Type: "kata"},
+						},
+					},
+					*cr,
+				}
+				return nil
+			})
 
 			// Validate deployed managed resource
 			managedResource := &resourcemanagerv1alpha1.ManagedResource{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorRuntimeSecretName, Namespace: namespaceName},
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 			}
-			//client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
-			client.EXPECT().Delete(ctx, managedResource).Return(nil)
+			mockClient.EXPECT().Delete(ctx, managedResource).Return(nil)
 
-			// Create mock client
+			// delete secret of managed resource
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorSecretName, Namespace: namespaceName},
+			}
+			mockClient.EXPECT().Delete(ctx, secret).Return(nil)
+
+			// wait for managed resource to be deleted
+			managedResourceStillAvailable := func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				Expect(obj).To(BeAssignableToTypeOf(&resourcemanagerv1alpha1.ManagedResource{}))
+				object, err := client.ObjectKeyFromObject(managedResource)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(key).To(Equal(object))
+				now := metav1.Now()
+				obj.(*resourcemanagerv1alpha1.ManagedResource).ObjectMeta.DeletionTimestamp = &now
+				return nil
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+
+			// Create mock mockClient
 			err := a.Delete(ctx, cr, cluster)
 
-			//client.EXPECT().Delete()
+			//mockClient.EXPECT().Delete()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Delete correctly - another worker pool still requires gVisor.", func() {
+
+			// ---------- Deletion of GVisor Installation -------------------
+
+			// Validate deployed managed resource
+			installationManagedResource := &resourcemanagerv1alpha1.ManagedResource{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), Namespace: namespaceName},
+			}
+			mockClient.EXPECT().Delete(ctx, installationManagedResource).Return(nil)
+
+			// Validate deleted secret
+			installationSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", controller.GVisorInstallationSecretName, cr.Spec.WorkerPool.Name), Namespace: namespaceName},
+			}
+			mockClient.EXPECT().Delete(ctx, installationSecret).Return(nil)
+			// wait for managed resource to be deleted
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+
+			// ---------- Deletion of GVisor Prerequisites -------------------
+
+			mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&extensionsv1alpha1.ContainerRuntimeList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+				Expect(list).To(BeAssignableToTypeOf(&extensionsv1alpha1.ContainerRuntimeList{}))
+				list.(*extensionsv1alpha1.ContainerRuntimeList).Items = []extensionsv1alpha1.ContainerRuntime{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "abc",
+						},
+						Spec: extensionsv1alpha1.ContainerRuntimeSpec{
+							WorkerPool:  extensionsv1alpha1.ContainerRuntimeWorkerPool{Name: "abcWorker"},
+							DefaultSpec: extensionsv1alpha1.DefaultSpec{Type: gvisor.Type},
+						},
+					},
+					*cr,
+				}
+				return nil
+			})
+
+			// Create mock mockClient
+			err := a.Delete(ctx, cr, cluster)
+
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})

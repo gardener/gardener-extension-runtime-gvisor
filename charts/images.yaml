@@ -2,3 +2,6 @@ images:
   - name: runtime-gvisor
     sourceRepository: github.com/gardener/gardener-extension-runtime-gvisor
     repository: eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor
+  - name: runtime-gvisor-installation
+    sourceRepository: github.com/gardener/gardener-extension-runtime-gvisor-installation
+    repository: eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation

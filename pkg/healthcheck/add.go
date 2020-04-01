@@ -41,7 +41,7 @@ var (
 // RegisterHealthChecks adds a controller with the given Options to the manager.
 // The opts.Reconciler is being set with a newly instantiated Actuator.
 func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) error {
-
+	// TODO danielfoehrKn: add health check of Installation MR when dynamics names are possible in the health check library
 	return healthcheck.DefaultRegistration(
 		gvisor.Type,
 		extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.ContainerRuntimeResource),
@@ -52,7 +52,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) 
 		[]healthcheck.ConditionTypeToHealthCheck{
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
-				HealthCheck:   general.CheckManagedResource(gvisorcontroller.GVisorRuntimeManagedResourceName),
+				HealthCheck:   general.CheckManagedResource(gvisorcontroller.GVisorManagedResourceName),
 			},
 		},
 	)

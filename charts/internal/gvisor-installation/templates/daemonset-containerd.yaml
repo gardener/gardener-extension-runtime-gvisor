@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: containerd-gvisor
+  name: containerd-gvisor-{{ .Values.config.workergroup }}
   namespace: kube-system
   labels:
     app.kubernetes.io/name: containerd-gvisor
@@ -26,7 +26,8 @@ spec:
 {{ toYaml .Values.config.nodeSelector | indent 8 }}
       containers:
       - name: container-runtime-gvisor-containerd
-        image: {{ index .Values.images "runtime-gvisor" }}
+        image: {{ index .Values.images "runtime-gvisor-installation" }}
+{{/*        image: eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation:v0.1.0-dev*/}}
         command: ["/scripts/install-gvisor-containerd.sh"]
         securityContext:
           privileged: true
@@ -41,5 +42,5 @@ spec:
           path: /
       - name: install-gvisor
         configMap:
-          name: containerd-gvisor
+          name: containerd-gvisor-{{ .Values.config.workergroup }}
           defaultMode: 0744

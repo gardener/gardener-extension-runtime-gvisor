@@ -3,3 +3,8 @@ kind: RuntimeClass
 metadata:
   name: gvisor
 handler: runsc
+{{- if semverCompare "> 1.15" .Values.config.kubernetesVersion }}
+scheduling:
+  nodeSelector:
+    containerruntime.worker.gardener.cloud/gvisor: "true"
+{{- end }}

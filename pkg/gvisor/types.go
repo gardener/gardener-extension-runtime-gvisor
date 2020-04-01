@@ -20,9 +20,10 @@ const (
 	Name = "runtime-gvisor"
 
 	// ImageNames
-	RuntimeGVisorImageName = "runtime-gvisor"
+	RuntimeGVisorInstallationImageName = "runtime-gvisor-installation"
 
-	ReleaseName = "gvisor"
+	InstallationReleaseName = "gvisor-installation"
+	ReleaseName             = "gvisor"
 )
 
 var (
@@ -30,7 +31,8 @@ var (
 	ChartsPath = filepath.Join("charts")
 	// InternalChartsPath is the path to the internal charts
 	InternalChartsPath = filepath.Join(ChartsPath, "internal")
-
-	// ChartPath path for internal GVisor containerd Chart
+	// InstallationChartPath path for internal GVisor installation Chart
+	InstallationChartPath = filepath.Join(InternalChartsPath, "gvisor-installation")
+	// InstallationChartPath path for internal GVisor Chart
 	ChartPath = filepath.Join(InternalChartsPath, "gvisor")
 )

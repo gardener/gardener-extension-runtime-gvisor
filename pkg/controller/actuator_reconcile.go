@@ -16,47 +16,77 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
+
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener-resource-manager/pkg/manager"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/operation/common"
-
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	GVisorRuntimeSecretName = "extension-runtime-gvisor"
-	GVisorRuntimeManagedResourceName = "extension-runtime-gvisor"
+	GVisorInstallationSecretName          = "extension-runtime-gvisor-installation"
+	GVisorSecretName                      = "extension-runtime-gvisor"
+	GVisorInstallationManagedResourceName = "extension-runtime-gvisor-installation"
+	GVisorManagedResourceName             = "extension-runtime-gvisor"
 )
 
 // Reconcile implements ContainerRuntime.Actuator.
 func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
-
-	// Create shoot chart renderer
 	chartRenderer, err := a.chartRendererFactory.NewChartRendererForShoot(cluster.Shoot.Spec.Kubernetes.Version)
 	if err != nil {
 		return errors.Wrapf(err, "could not create chart renderer for shoot '%s'", cr.Namespace)
 	}
 
-	gvisorChart, err := charts.RenderGVisorChart(chartRenderer, cr)
+	// if the managed resource containing the prerequisites is not available yet, create it.
+	mr := &resourcemanagerv1alpha1.ManagedResource{}
+	if err := a.client.Get(ctx, kutil.Key(cr.Namespace, GVisorManagedResourceName), mr); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		a.logger.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace)
+		// create MR containing the prerequisites for the installation DaemonSet
+		gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version)
+		if err != nil {
+			return err
+		}
+
+		secret, secretRefs := gvisorSecret(a.client, gVisorChart, cr.Namespace, GVisorSecretName)
+		if err := secret.Reconcile(ctx); err != nil {
+			return err
+		}
+
+		if err := manager.
+			NewManagedResource(a.client).
+			WithNamespacedName(cr.Namespace, GVisorManagedResourceName).
+			WithSecretRefs(secretRefs).
+			Reconcile(ctx); err != nil {
+			return errors.Wrap(err, "failed to create managed resource - prerequisite for the installation of gVisor")
+		}
+	}
+
+	a.logger.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace, "worker pool", cr.Spec.WorkerPool.Name)
+	gVisorChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr)
 	if err != nil {
 		return err
 	}
 
-	secret, secretRefs := gvisorSecret(a.client, gvisorChart, cr.Namespace)
+	secret, secretRefs := gvisorSecret(a.client, gVisorChart, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name))
 	if err := secret.Reconcile(ctx); err != nil {
 		return err
 	}
 
 	return manager.
 		NewManagedResource(a.client).
-		WithNamespacedName(cr.Namespace, GVisorRuntimeManagedResourceName).
+		WithNamespacedName(cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)).
 		WithSecretRefs(secretRefs).
-		WithInjectedLabels(map[string]string{common.ShootNoCleanup: "true"}).
 		Reconcile(ctx)
 }
 
@@ -68,8 +98,8 @@ func withLocalObjectRefs(refs ...string) []corev1.LocalObjectReference {
 	return localObjectRefs
 }
 
-func gvisorSecret(cl client.Client, gvisorConfig []byte, namespace string) (*manager.Secret, []corev1.LocalObjectReference) {
+func gvisorSecret(cl client.Client, gVisorConfig []byte, namespace, secretName string) (*manager.Secret, []corev1.LocalObjectReference) {
 	return manager.NewSecret(cl).
-		WithKeyValues(map[string][]byte{charts.GVisorConfigKey: gvisorConfig}).
-		WithNamespacedName(namespace, GVisorRuntimeSecretName), withLocalObjectRefs(GVisorRuntimeSecretName)
+		WithKeyValues(map[string][]byte{charts.GVisorConfigKey: gVisorConfig}).
+		WithNamespacedName(namespace, secretName), withLocalObjectRefs(secretName)
 }

@@ -16,12 +16,14 @@ package charts_test
 
 import (
 	"fmt"
+
 	"github.com/golang/mock/gomock"
+
+	mockchartrenderer "github.com/gardener/gardener-extensions/pkg/mock/gardener/chartrenderer"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/imagevector"
-	mockchartrenderer "github.com/gardener/gardener-extensions/pkg/mock/gardener/chartrenderer"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
@@ -32,7 +34,6 @@ import (
 )
 
 var _ = Describe("Chart package test", func() {
-
 	Describe("#RenderGvisorChart", func() {
 		var (
 			ctrl                = gomock.NewController(GinkgoT())
@@ -41,24 +42,27 @@ var _ = Describe("Chart package test", func() {
 			mkManifest          = func(name string) manifest.Manifest {
 				return manifest.Manifest{Name: fmt.Sprintf("test/templates/%s", name), Content: testManifestContent}
 			}
+			workerGroup       = "worker-gvisor"
+			kubernetesVersion = "1.0.0"
+
 			cr = extensionsv1alpha1.ContainerRuntime{
 				Spec: extensionsv1alpha1.ContainerRuntimeSpec{
 					BinaryPath: "/path/test",
-					DefaultSpec:  extensionsv1alpha1.DefaultSpec{
-						Type: "type"}}}
+					WorkerPool: extensionsv1alpha1.ContainerRuntimeWorkerPool{
+						Name: workerGroup,
+						Selector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"worker.gardener.cloud/pool": "gvisor-pool"},
+						},
+					},
+					DefaultSpec: extensionsv1alpha1.DefaultSpec{
+						Type: "type"},
+				},
+			}
 		)
-
 		It("Render Gvisor chart correctly", func() {
 			renderedValues := map[string]interface{}{
-				"images": map[string]string{
-					"runtime-gvisor": imagevector.RuntimeGVisorImage(),
-				},
 				"config": map[string]interface{}{
-					"nodeSelector": map[string]string{
-						extensionsv1alpha1.CRINameWorkerLabel:                                         extensionsv1alpha1.CRINameContainerD,
-						fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, cr.Spec.Type): "true",
-					},
-					"binFolder": "/path/test",
+					"kubernetesVersion": kubernetesVersion,
 				},
 			}
 
@@ -69,7 +73,33 @@ var _ = Describe("Chart package test", func() {
 				},
 			}, nil)
 
-			_, err := charts.RenderGVisorChart(mockChartRenderer, &cr)
+			_, err := charts.RenderGVisorChart(mockChartRenderer, kubernetesVersion)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Render Gvisor installation chart correctly", func() {
+			renderedValues := map[string]interface{}{
+				"images": map[string]string{
+					"runtime-gvisor-installation": imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
+				},
+				"config": map[string]interface{}{
+					"nodeSelector": map[string]string{
+						extensionsv1alpha1.CRINameWorkerLabel: extensionsv1alpha1.CRINameContainerD,
+						"worker.gardener.cloud/pool":          "gvisor-pool",
+					},
+					"binFolder":   "/path/test",
+					"workergroup": workerGroup,
+				},
+			}
+
+			mockChartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
+				ChartName: "test",
+				Manifests: []manifest.Manifest{
+					mkManifest(charts.GVisorConfigKey),
+				},
+			}, nil)
+
+			_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})

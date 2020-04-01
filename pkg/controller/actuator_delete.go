@@ -16,30 +16,68 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	resourcemanager "github.com/gardener/gardener-resource-manager/pkg/manager"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 // Delete implements ContainerRuntime.Actuator.
 func (a *actuator) Delete(ctx context.Context, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+	a.logger.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managed resource", fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), "namespace", cr.Namespace, "containerRuntime", cr.Name)
+	if err := a.deleteManagedResource(ctx, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)); err != nil {
+		return err
+	}
+
+	// delete the gVisor managed resource if all ContainerRuntime CRDs of type gVisor have a deletion timestamp
+	list := &extensionsv1alpha1.ContainerRuntimeList{}
+	if err := a.client.List(ctx, list, client.InNamespace(cr.Namespace)); err != nil {
+		return err
+	}
+
+	if isGVisorInstallationRequired(cr, list) {
+		a.logger.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion", "namespace", cr.Namespace, "containerRuntime", cr.Name)
+		return nil
+	}
+	a.logger.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managed resource", GVisorManagedResourceName)
+
+	return a.deleteManagedResource(ctx, cr.Namespace, GVisorManagedResourceName, GVisorSecretName)
+}
+
+func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managedResourceName, secretName string) error {
 	if err := resourcemanager.
-		NewSecret(a.client).
-		WithNamespacedName(cr.Namespace, GVisorRuntimeSecretName).
+		NewManagedResource(a.client).
+		WithNamespacedName(namespace, managedResourceName).
 		Delete(ctx); err != nil {
 		return err
 	}
+
 	if err := resourcemanager.
-		NewManagedResource(a.client).
-		WithNamespacedName(cr.Namespace, GVisorRuntimeSecretName).
+		NewSecret(a.client).
+		WithNamespacedName(namespace, secretName).
 		Delete(ctx); err != nil {
 		return err
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	return extensionscontroller.WaitUntilManagedResourceDeleted(timeoutCtx, a.client, cr.Namespace, GVisorRuntimeSecretName)
+	if err := extensionscontroller.WaitUntilManagedResourceDeleted(timeoutCtx, a.client, namespace, managedResourceName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func isGVisorInstallationRequired(c *extensionsv1alpha1.ContainerRuntime, list *extensionsv1alpha1.ContainerRuntimeList) bool {
+	for _, cr := range list.Items {
+		if cr.Name != c.Name && cr.Spec.DefaultSpec.Type == gvisor.Type && cr.DeletionTimestamp == nil {
+			return true
+		}
+	}
+	return false
 }

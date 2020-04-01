@@ -19,7 +19,6 @@ package imagevector
 import (
 	"strings"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/version"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
@@ -47,9 +46,9 @@ func ImageVector() imagevector.ImageVector {
 	return imageVector
 }
 
-// RuntimeGvisorImage returns the container runtime GVisor image.
-func RuntimeGvisorImage() string {
-	image, err := imageVector.FindImage(gvisor.RuntimeGVisorImageName)
+// FindImage returns the container runtime GVisor image.
+func FindImage(name string) string {
+	image, err := imageVector.FindImage(name)
 	runtime.Must(err)
 
 	var (

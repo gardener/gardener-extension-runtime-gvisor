@@ -14,7 +14,8 @@
 
 EXTENSION_PREFIX            := gardener-extension
 NAME                        := runtime-gvisor
-REGISTRY                    := eu.gcr.io/gardener-project
+NAME_INSTALLATION           := runtime-gvisor-installation
+REGISTRY                    := eu.gcr.io/gardener-project/gardener
 IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
@@ -88,9 +89,11 @@ endif
 docker-login:
 	@gcloud auth activate-service-account --key-file .kube-secrets/gcr/gcr-readwrite.json
 
+# eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor:0.0.0-dev
 .PHONY: docker-images
 docker-images:
 	@docker build -t $(IMAGE_PREFIX)/$(NAME):$(VERSION) -t $(IMAGE_PREFIX)/$(NAME):latest -f Dockerfile -m 6g --target $(EXTENSION_PREFIX)-$(NAME) .
+	@docker build -t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):$(VERSION) -t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):latest -f Dockerfile -m 200m --target $(EXTENSION_PREFIX)-$(NAME_INSTALLATION) .
 
 ### Debug / Development commands
 

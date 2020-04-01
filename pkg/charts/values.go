@@ -15,7 +15,6 @@
 package charts
 
 import (
-	"fmt"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/imagevector"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
@@ -27,23 +26,42 @@ import (
 
 const GVisorConfigKey = "config.yaml"
 
-func RenderGVisorChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
-
+func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
 	nodeSelectorValue := map[string]string{
-		extensionsv1alpha1.CRINameWorkerLabel:                                         extensionsv1alpha1.CRINameContainerD,
-		fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, cr.Spec.Type): "true",
+		extensionsv1alpha1.CRINameWorkerLabel: extensionsv1alpha1.CRINameContainerD,
+	}
+
+	for key, value := range cr.Spec.WorkerPool.Selector.MatchLabels {
+		nodeSelectorValue[key] = value
 	}
 
 	configChartValues := map[string]interface{}{
 		"binFolder":    cr.Spec.BinaryPath,
 		"nodeSelector": nodeSelectorValue,
+		"workergroup":  cr.Spec.WorkerPool.Name,
 	}
 
 	gvisorChartValues := map[string]interface{}{
 		"config": configChartValues,
 		"images": map[string]string{
-			gvisor.RuntimeGVisorImageName: imagevector.RuntimeGvisorImage(),
+			gvisor.RuntimeGVisorInstallationImageName: imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
 		},
+	}
+
+	release, err := renderer.Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gvisorChartValues)
+	if err != nil {
+		return nil, err
+	}
+	return release.Manifest(), nil
+}
+
+func RenderGVisorChart(renderer chartrenderer.Interface, kubernetesVersion string) ([]byte, error) {
+	configChartValues := map[string]interface{}{
+		"kubernetesVersion": kubernetesVersion,
+	}
+
+	gvisorChartValues := map[string]interface{}{
+		"config": configChartValues,
 	}
 
 	release, err := renderer.Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gvisorChartValues)
