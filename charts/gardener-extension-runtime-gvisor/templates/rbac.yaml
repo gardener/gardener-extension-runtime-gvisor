@@ -2,11 +2,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: gardener-extension-runtime-gvisor
+  name: {{ include "name" . }}
   labels:
-    app.kubernetes.io/name: gardener-extension-runtime-gvisor
-    helm.sh/chart: gardener-extension-runtime-gvisor
-    app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "labels" . | indent 4 }}
 rules:
 - apiGroups:
     - extensions.gardener.cloud

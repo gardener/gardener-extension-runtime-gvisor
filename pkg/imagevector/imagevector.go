@@ -38,12 +38,12 @@ func init() {
 
 	imageVector, err = imagevector.Read(strings.NewReader(imagesYaml))
 	runtime.Must(err)
-
+	// image vector for components deployed by the gVisor extension
 	imageVector, err = imagevector.WithEnvOverride(imageVector)
+
 	image, err := imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
 	runtime.Must(err)
-	fmt.Printf("%q - image vector overide: %q \n", gvisor.RuntimeGVisorInstallationImageName, image.String())
-	fmt.Printf("%q - image vector overide: %q \n", gvisor.RuntimeGVisorImageName, image.String())
+	fmt.Printf("Image %q - using image name: %q \n", gvisor.RuntimeGVisorInstallationImageName, image.String())
 	runtime.Must(err)
 }
 

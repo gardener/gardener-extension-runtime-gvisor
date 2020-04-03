@@ -2,6 +2,10 @@ image:
   repository: eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor
   tag: latest
   pullPolicy: IfNotPresent
+# imageVectorOverwrite: |
+#  Please find documentation in github.com/gardener/gardener/docs/deployment/image_vector.md
+# componentImageVectorOverwrites: |
+#  Please find documentation in github.com/gardener/gardener/docs/deployment/image_vector.md
 
 resources: {}
 

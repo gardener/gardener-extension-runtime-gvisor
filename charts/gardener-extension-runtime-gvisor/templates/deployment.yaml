@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gardener-extension-runtime-gvisor
+  name: {{ include "name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: gardener-extension-runtime-gvisor
-    helm.sh/chart: gardener-extension-runtime-gvisor
-    app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "labels" . | indent 4 }}
 spec:
   revisionHistoryLimit: 0
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: gardener-extension-runtime-gvisor
-      app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "labels" . | indent 6 }}
   template:
     metadata:
+      annotations:
+        {{- if .Values.image.imageVectorOverwrite }}
+        checksum/configmap-gvisor-imagevector-overwrite: {{ include (print $.Template.BasePath "/configmap-imagevector-overwrite.yaml") . | sha256sum }}
+        {{- end }}
       labels:
-        app.kubernetes.io/name: gardener-extension-runtime-gvisor
-        app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "labels" . | indent 8 }}
     spec:
       serviceAccountName: gardener-extension-runtime-gvisor
       containers:
@@ -34,7 +34,24 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        {{- if .Values.image.imageVectorOverwrite }}
+        - name: IMAGEVECTOR_OVERWRITE
+          value: /charts_overwrite/images_overwrite.yaml
+        {{- end }}
 {{- if .Values.resources }}
         resources:
 {{ toYaml .Values.resources | nindent 10 }}
 {{- end }}
+        {{- if .Values.image.imageVectorOverwrite }}
+        volumeMounts:
+        - name: imagevector-overwrite
+          mountPath: /charts_overwrite/
+          readOnly: true
+        {{- end }}
+      volumes:
+      {{- if .Values.image.imageVectorOverwrite }}
+      - name: imagevector-overwrite
+        configMap:
+          name: {{ include "name" . }}-imagevector-overwrite
+          defaultMode: 420
+      {{- end }}

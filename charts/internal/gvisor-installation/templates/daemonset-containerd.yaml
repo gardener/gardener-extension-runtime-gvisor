@@ -27,7 +27,6 @@ spec:
       containers:
       - name: container-runtime-gvisor-containerd
         image: {{ index .Values.images "runtime-gvisor-installation" }}
-{{/*        image: eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation:v0.1.0-dev*/}}
         command: ["/scripts/install-gvisor-containerd.sh"]
         securityContext:
           privileged: true

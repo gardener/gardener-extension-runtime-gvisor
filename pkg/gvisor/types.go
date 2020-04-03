@@ -21,7 +21,6 @@ const (
 
 	// ImageNames
 	RuntimeGVisorInstallationImageName = "runtime-gvisor-installation"
-	RuntimeGVisorImageName = "runtime-gvisor"
 
 	InstallationReleaseName = "gvisor-installation"
 	ReleaseName             = "gvisor"
