@@ -17,8 +17,10 @@
 package imagevector
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/version"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
@@ -38,6 +40,10 @@ func init() {
 	runtime.Must(err)
 
 	imageVector, err = imagevector.WithEnvOverride(imageVector)
+	image, err := imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
+	runtime.Must(err)
+	fmt.Printf("%q - image vector overide: %q \n", gvisor.RuntimeGVisorInstallationImageName, image.String())
+	fmt.Printf("%q - image vector overide: %q \n", gvisor.RuntimeGVisorImageName, image.String())
 	runtime.Must(err)
 }
 

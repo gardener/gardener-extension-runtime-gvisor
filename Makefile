@@ -14,15 +14,15 @@
 
 EXTENSION_PREFIX            := gardener-extension
 NAME                        := runtime-gvisor
+CMD_DIRECTORY				:= ./cmd/$(EXTENSION_PREFIX)-$(NAME)
 NAME_INSTALLATION           := runtime-gvisor-installation
 REGISTRY                    := eu.gcr.io/gardener-project/gardener
 IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
-LD_FLAGS                    := "-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(IMAGE_TAG)"
+LD_FLAGS                    := $(shell ./hack/get-build-ld-flags)
 VERIFY                      := true
-LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := true
 
 ### GVisor version: https://github.com/google/gvisor/releases
@@ -58,11 +58,7 @@ verify: check generate test format
 
 .PHONY: install
 install:
-	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION) \
-			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.gitVersion=$(VERSION) \
-			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.gitTreeState=$(shell sh -c '[ -z git status --porcelain 2>/dev/null ] && echo clean || echo dirty') \
-			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.gitCommit=$(shell sh -c 'git rev-parse --verify HEAD') \
-			   -w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.buildDate=$(shell sh -c 'date --iso-8601=seconds')" \
+	@LD_FLAGS="$(LD_FLAGS)" \
 	$(REPO_ROOT)/vendor/github.com/gardener/gardener-extensions/hack/install.sh ./...
 
 .PHONY: install-requirements
@@ -89,7 +85,6 @@ endif
 docker-login:
 	@gcloud auth activate-service-account --key-file .kube-secrets/gcr/gcr-readwrite.json
 
-# eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor:0.0.0-dev
 .PHONY: docker-images
 docker-images:
 	@docker build -t $(IMAGE_PREFIX)/$(NAME):$(VERSION) -t $(IMAGE_PREFIX)/$(NAME):latest -f Dockerfile -m 6g --target $(EXTENSION_PREFIX)-$(NAME) .
@@ -106,8 +101,4 @@ revendor:
 
 .PHONY: start
 start:
-	@LEADER_ELECTION_NAMESPACE=garden GO111MODULE=on go run \
-		-mod=vendor \
-		-ldflags $(LD_FLAGS) \
-		./cmd/$(EXTENSION_PREFIX)-$(NAME) \
-		--leader-election=$(LEADER_ELECTION)
+	@./hack/start-gvisor-extension.sh -l "$(LD_FLAGS)" -d "$(CMD_DIRECTORY)"
