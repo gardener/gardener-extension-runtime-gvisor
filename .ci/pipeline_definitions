@@ -17,7 +17,6 @@ gardener-extension-runtime-gvisor:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation'
             dockerfile: 'Dockerfile'
             target: gardener-extension-runtime-gvisor-installation
-    steps: ~
   jobs:
     head-update:
       traits:

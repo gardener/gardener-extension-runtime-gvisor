@@ -20,9 +20,9 @@ import (
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener-resource-manager/pkg/manager"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/pkg/errors"

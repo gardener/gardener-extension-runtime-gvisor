@@ -22,8 +22,8 @@ import (
 	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck"
-	"github.com/gardener/gardener-extensions/pkg/controller"
-	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller"
+	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )

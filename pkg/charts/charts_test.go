@@ -19,7 +19,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	mockchartrenderer "github.com/gardener/gardener-extensions/pkg/mock/gardener/chartrenderer"
+	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"

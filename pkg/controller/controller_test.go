@@ -18,14 +18,15 @@ import (
 	"context"
 	"fmt"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
-	mockextensionscontroller "github.com/gardener/gardener-extensions/pkg/mock/gardener-extensions/controller"
-	mockchartrenderer "github.com/gardener/gardener-extensions/pkg/mock/gardener/chartrenderer"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+
 	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
+	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
+	mockcontroller "github.com/gardener/gardener/pkg/mock/gardener/extensions/controller"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,7 +52,7 @@ var _ = Describe("Chart package test", func() {
 	Describe("#Actuator", func() {
 		var (
 			ctrl            = gomock.NewController(GinkgoT())
-			crf             = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
+			crf             = mockcontroller.NewMockChartRendererFactory(ctrl)
 			mockClient      = mockclient.NewMockClient(ctrl)
 			ctx             = context.TODO()
 			chartName       = "chartName"

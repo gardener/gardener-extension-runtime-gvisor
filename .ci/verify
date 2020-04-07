@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+cd "$(dirname $0)/.."
+
+git config --global user.email "gardener@sap.com"
+git config --global user.name "Gardener CI/CD"
+
+mkdir -p /go/src/github.com/gardener/gardener-extension-runtime-gvisor
+cp -r . /go/src/github.com/gardener/gardener-extension-runtime-gvisor
+cd /go/src/github.com/gardener/gardener-extension-runtime-gvisor
+
+make verify-extended

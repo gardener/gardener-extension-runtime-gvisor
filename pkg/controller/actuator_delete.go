@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	resourcemanager "github.com/gardener/gardener-resource-manager/pkg/manager"
