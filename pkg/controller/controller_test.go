@@ -18,13 +18,16 @@ import (
 	"context"
 	"fmt"
 
-	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 
 	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
+	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
 	mockcontroller "github.com/gardener/gardener/pkg/mock/gardener/extensions/controller"
 	"github.com/golang/mock/gomock"
@@ -37,10 +40,6 @@ import (
 	"k8s.io/helm/pkg/manifest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
-
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 const (

@@ -35,8 +35,9 @@ cleanup_kubeconfig() {
 gvisorParamterUsage()
 {
    echo ""
-   echo "Usage: $0 -l LD_FLAGS -d DIRECTORY"
+   echo "Usage: $0 -l LD_FLAGS -d DIRECTORY -i IGNORE_OPERATION_ANNOTATION"
    echo -e "\t-l ldflags for the Go compilation"
    echo -e "\t-d Directory to the go main() function"
+   echo -e "\t-i Wether to ignore the operation annotation on ContainerRuntime resources"
    exit 1 # Exit script after printing help
 }

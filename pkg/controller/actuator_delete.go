@@ -19,13 +19,12 @@ import (
 	"fmt"
 	"time"
 
-	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 
 	resourcemanager "github.com/gardener/gardener-resource-manager/pkg/manager"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Delete implements ContainerRuntime.Actuator.

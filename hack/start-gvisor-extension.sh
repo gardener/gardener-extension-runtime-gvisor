@@ -18,16 +18,17 @@
 source $(dirname "${0}")/helper.sh
 source $(dirname "${0}")/local-imagevector-overwrite.sh
 
-while getopts "l:d:e:" opt
+while getopts "l:d:e:i:" opt
 do
    case "$opt" in
       l ) LD_FLAGS="$OPTARG" ;;
       d ) DIRECTORY="$OPTARG" ;;
-      ? ) gvisorParamterUsage ;; # Print helpFunction in case parameter is non-existent
+      i ) IGNORE_OPERATION_ANNOTATION="$OPTARG" ;;
+      ? ) gvisorParamterUsage ;; # Print gvisorParamterUsage in case parameter is non-existent
    esac
 done
 
-# Print helpFunction in case parameters are empty
+# Print gvisorParamterUsage in case parameters are empty
 if [ -z "$LD_FLAGS" ] || [ -z "$DIRECTORY" ]
 then
    echo "Some or all of the parameters are empty";
@@ -35,10 +36,6 @@ then
 fi
 
 # Begin script in case all parameters are correct
-echo "$LD_FLAGS"
-echo "$DIRECTORY"
-
-
 kubeconfig="$(mktemp_kubeconfig)"
 trap cleanup_kubeconfig EXIT
 
@@ -52,4 +49,5 @@ GO111MODULE=on \
       -mod=vendor \
       -ldflags "$LD_FLAGS" \
       "$DIRECTORY" \
+      --ignore-operation-annotation="$IGNORE_OPERATION_ANNOTATION" \
       --leader-election=false

@@ -22,7 +22,6 @@ REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
 LD_FLAGS                    := $(shell ./hack/get-build-ld-flags)
-VERIFY                      := true
 IGNORE_OPERATION_ANNOTATION := true
 
 ### GVisor version: https://github.com/google/gvisor/releases
@@ -116,4 +115,4 @@ verify-extended: install-requirements check-generate check format test test-clea
 
 .PHONY: start
 start:
-	@./hack/start-gvisor-extension.sh -l "$(LD_FLAGS)" -d "$(CMD_DIRECTORY)"
+	@./hack/start-gvisor-extension.sh -l "$(LD_FLAGS)" -d "$(CMD_DIRECTORY)" -i "$(IGNORE_OPERATION_ANNOTATION)"

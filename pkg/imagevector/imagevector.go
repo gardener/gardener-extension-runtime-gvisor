@@ -40,6 +40,7 @@ func init() {
 	runtime.Must(err)
 	// image vector for components deployed by the gVisor extension
 	imageVector, err = imagevector.WithEnvOverride(imageVector)
+	runtime.Must(err)
 
 	image, err := imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
 	runtime.Must(err)

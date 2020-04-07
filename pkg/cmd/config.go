@@ -19,8 +19,8 @@ import (
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config"
 	configloader "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/loader"
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
 
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
 	"github.com/spf13/pflag"
 )
 
