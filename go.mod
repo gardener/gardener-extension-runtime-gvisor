@@ -28,7 +28,6 @@ require (
 )
 
 replace (
-	github.com/gardener/controller-manager-library => github.com/gardener/controller-manager-library v0.1.1-0.20191212112146-917449ad760c
 	k8s.io/api => k8s.io/api v0.16.8 // 1.16.8
 	k8s.io/apimachinery => k8s.io/apimachinery v0.16.8 // 1.16.8
 	k8s.io/apiserver => k8s.io/apiserver v0.16.8 // 1.16.8

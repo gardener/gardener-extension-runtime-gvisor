@@ -25,6 +25,7 @@ import (
 
 const GVisorConfigKey = "config.yaml"
 
+// RenderGVisorInstallationChart renders the gVisor installation chart
 func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
 	nodeSelectorValue := map[string]string{
 		extensionsv1alpha1.CRINameWorkerLabel: extensionsv1alpha1.CRINameContainerD,
@@ -54,6 +55,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 	return release.Manifest(), nil
 }
 
+// RenderGVisorChart renders the gVisor chart
 func RenderGVisorChart(renderer chartrenderer.Interface, kubernetesVersion string) ([]byte, error) {
 	configChartValues := map[string]interface{}{
 		"kubernetesVersion": kubernetesVersion,

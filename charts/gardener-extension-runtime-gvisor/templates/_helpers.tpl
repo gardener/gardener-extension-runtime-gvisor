@@ -10,7 +10,6 @@
 apps/v1
 {{- end -}}
 
-
 {{- define "name" -}}
 gardener-extension-runtime-gvisor
 {{- end -}}

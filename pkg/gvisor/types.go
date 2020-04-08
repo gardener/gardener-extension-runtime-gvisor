@@ -17,13 +17,16 @@ package gvisor
 import "path/filepath"
 
 const (
+	// Name is a constant to identify the gVisor extension
 	Name = "runtime-gvisor"
 
-	// ImageNames
+	// RuntimeGVisorInstallationImageName is the image name for gvisor installation chart
 	RuntimeGVisorInstallationImageName = "runtime-gvisor-installation"
 
+	// InstallationReleaseName is the name of the gVisor installation chart
 	InstallationReleaseName = "gvisor-installation"
-	ReleaseName             = "gvisor"
+	// ReleaseName is the name of the gVisor chart
+	ReleaseName = "gvisor"
 )
 
 var (

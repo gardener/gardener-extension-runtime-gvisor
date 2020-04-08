@@ -14,8 +14,8 @@
 
 EXTENSION_PREFIX            := gardener-extension
 NAME                        := runtime-gvisor
-CMD_DIRECTORY				:= ./cmd/$(EXTENSION_PREFIX)-$(NAME)
 NAME_INSTALLATION           := runtime-gvisor-installation
+CMD_DIRECTORY				:= ./cmd/$(EXTENSION_PREFIX)-$(NAME)
 REGISTRY                    := eu.gcr.io/gardener-project/gardener
 IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -72,7 +72,6 @@ revendor:
 	@chmod +x $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/.ci/*
 	@chmod +x $(REPO_ROOT)/vendor/github.com/gardener/gardener/extensions/hack/*
 
-
 .PHONY: clean
 clean:
 	@$(shell find ./example -type f -name "controller-registration.yaml" -exec rm '{}' \;)
@@ -97,7 +96,7 @@ format:
 
 .PHONY: test
 test:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh --skipPackage test/e2e/networkpolicies,test/integration -r ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh -r ./cmd/... ./pkg/...
 
 .PHONY: test-cov
 test-cov:

@@ -40,7 +40,7 @@ func (a *actuator) Delete(ctx context.Context, cr *extensionsv1alpha1.ContainerR
 		return err
 	}
 
-	if isGVisorInstallationRequired(cr, list) {
+	if isGVisorInstallationRequired(cr.Name, list) {
 		a.logger.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion", "namespace", cr.Namespace, "containerRuntime", cr.Name)
 		return nil
 	}
@@ -72,9 +72,9 @@ func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managed
 	return nil
 }
 
-func isGVisorInstallationRequired(c *extensionsv1alpha1.ContainerRuntime, list *extensionsv1alpha1.ContainerRuntimeList) bool {
+func isGVisorInstallationRequired(name string, list *extensionsv1alpha1.ContainerRuntimeList) bool {
 	for _, cr := range list.Items {
-		if cr.Name != c.Name && cr.Spec.DefaultSpec.Type == gvisor.Type && cr.DeletionTimestamp == nil {
+		if cr.Name != name && cr.Spec.DefaultSpec.Type == gvisor.Type && cr.DeletionTimestamp == nil {
 			return true
 		}
 	}
