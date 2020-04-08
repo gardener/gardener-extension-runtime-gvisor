@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.1.5
 	github.com/frankban/quicktest v1.9.0 // indirect
-	github.com/gardener/gardener v1.2.1-0.20200407112824-e915bd8e38f6
+	github.com/gardener/gardener v1.2.1-0.20200409110046-3c12922cc0b3
 	github.com/gardener/gardener-resource-manager v0.10.0
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.5.1

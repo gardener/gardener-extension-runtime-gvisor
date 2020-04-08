@@ -49,3 +49,5 @@ gardener-extension-runtime-gvisor:
           dockerimages:
             gardener-extension-runtime-gvisor:
               tag_as_latest: true
+            gardener-extension-runtime-gvisor-installation:
+              tag_as_latest: true

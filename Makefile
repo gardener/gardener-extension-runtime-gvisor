@@ -15,13 +15,13 @@
 EXTENSION_PREFIX            := gardener-extension
 NAME                        := runtime-gvisor
 NAME_INSTALLATION           := runtime-gvisor-installation
-CMD_DIRECTORY				:= ./cmd/$(EXTENSION_PREFIX)-$(NAME)
+CMD_DIRECTORY		        := ./cmd/$(EXTENSION_PREFIX)-$(NAME)
 REGISTRY                    := eu.gcr.io/gardener-project/gardener
 IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
-LD_FLAGS                    := $(shell ./hack/get-build-ld-flags)
+LD_FLAGS                    := $(shell ./vendor/github.com/gardener/gardener/hack/get-build-ld-flags.sh github.com/gardener/"$(EXTENSION_PREFIX)-$(NAME)" "$(REPO_ROOT)/VERSION")
 IGNORE_OPERATION_ANNOTATION := true
 
 ### GVisor version: https://github.com/google/gvisor/releases
@@ -79,7 +79,7 @@ clean:
 
 .PHONY: check-generate
 check-generate:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh $(REPO_ROOT)
 
 .PHONY: check
 check:
@@ -88,7 +88,7 @@ check:
 
 .PHONY: generate
 generate:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: format
 format:
@@ -114,4 +114,4 @@ verify-extended: install-requirements check-generate check format test test-clea
 
 .PHONY: start
 start:
-	@./hack/start-gvisor-extension.sh -l "$(LD_FLAGS)" -d "$(CMD_DIRECTORY)" -i "$(IGNORE_OPERATION_ANNOTATION)"
+	@./hack/start-gvisor-extension.sh -l "$(LD_FLAGS)" -d "$(CMD_DIRECTORY)" -i "$(IGNORE_OPERATION_ANNOTATION)" -r "$(REPO_ROOT)"
