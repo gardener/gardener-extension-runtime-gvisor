@@ -12,7 +12,11 @@ gardener-extension-runtime-gvisor:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor'
             dockerfile: 'Dockerfile'
             target: gardener-extension-runtime-gvisor
-    steps: ~
+          gardener-extension-runtime-gvisor-installation:
+            registry: 'gcr-readwrite'
+            image: 'eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation'
+            dockerfile: 'Dockerfile'
+            target: gardener-extension-runtime-gvisor-installation
   jobs:
     head-update:
       traits:
@@ -44,4 +48,6 @@ gardener-extension-runtime-gvisor:
         publish:
           dockerimages:
             gardener-extension-runtime-gvisor:
+              tag_as_latest: true
+            gardener-extension-runtime-gvisor-installation:
               tag_as_latest: true

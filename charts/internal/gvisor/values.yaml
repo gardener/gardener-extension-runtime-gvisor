@@ -1,0 +1,2 @@
+config:
+  kubernetesVersion: 1.16.1

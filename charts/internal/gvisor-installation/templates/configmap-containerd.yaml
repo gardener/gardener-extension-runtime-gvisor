@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: containerd-gvisor-{{ .Values.config.workergroup }}
+  namespace: kube-system
+data:
+  install-gvisor-containerd.sh: |-
+    #!/bin/sh
+    BIN_TARGET_DIR="{{.Values.config.binFolder }}"
+
+    mkdir -p "/var/host/$BIN_TARGET_DIR"
+
+    cd /var/content
+
+    TARGET_RUNSC="/var/host/$BIN_TARGET_DIR/runsc"
+    if [ ! -f "$TARGET_RUNSC" ]; then
+      echo "Adding gVisor binary."
+      chmod +x runsc
+      mv runsc "$TARGET_RUNSC"
+    elif diff runsc "$TARGET_RUNSC"  > /dev/null; then
+      echo "gVisor binary up to date."
+    else
+      echo "Updating gVisor binary."
+      chmod +x runsc
+      mv runsc "$TARGET_RUNSC"
+    fi
+
+    TARGET_SHIM="/var/host/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
+    if [ ! -f "$TARGET_SHIM" ]; then
+      echo "Adding shim binary."
+      chmod +x runsc
+      mv containerd-shim-runsc-v1.linux-amd64 "$TARGET_SHIM"
+    elif diff containerd-shim-runsc-v1.linux-amd64 "$TARGET_SHIM"  > /dev/null; then
+      echo "Shim binary up to date."
+    else
+      echo "Updating shim binary."
+      chmod +x containerd-shim-runsc-v1.linux-amd64
+      # shim is a long running process. Will only use new shim, wenn old shim stopped.
+      # killing the shim is not an option, as it kills its containers
+      mv containerd-shim-runsc-v1.linux-amd64 "$TARGET_SHIM"
+    fi
+
+    # configuring containerd config file for gVisor
+    FILENAME=/var/host/etc/containerd/config.toml
+    if ! grep -q containerd.runtimes.runsc "$FILENAME"; then
+      echo "Configuring containerd config file for gVisor."
+      VERSION="$(head -n 1 $FILENAME)"
+
+      if [ "$VERSION" == "version = 2" ]
+      then
+        echo "[plugins.\"io.containerd.grpc.v1.cri\".containerd.runtimes.runsc]
+          runtime_type = \"io.containerd.runsc.v1\"" >> /var/host/etc/containerd/config.toml
+      else
+        echo "[plugins.cri.containerd.runtimes.runsc]
+          runtime_type = \"io.containerd.runsc.v1\"" >> /var/host/etc/containerd/config.toml
+      fi
+
+      echo "Restarting containerd"
+      chroot /var/host bash -c "systemctl restart containerd"
+    else
+      echo "Containerd already configured for gvisor."
+    fi
+
+    echo "Task completed, sleeping ..."
+    while true; do
+    	sleep 3600;
+    done

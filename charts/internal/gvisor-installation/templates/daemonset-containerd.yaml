@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: containerd-gvisor-{{ .Values.config.workergroup }}
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: containerd-gvisor
+    helm.sh/chart: containerd-gvisor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: containerd-gvisor
+  template:
+    metadata:
+      annotations:
+        checksum/configmp-containerd-gvisor: {{ include (print $.Template.BasePath "/configmap-containerd.yaml") . | sha256sum }}
+      labels:
+        app.kubernetes.io/name: containerd-gvisor
+        origin: gardener-extension-runtime-gvisor
+        gardener.cloud/role: container-runtime
+    spec:
+      serviceAccountName: gvisor
+      hostPID: true
+      hostIPC: true
+      nodeSelector:
+{{ toYaml .Values.config.nodeSelector | indent 8 }}
+      containers:
+      - name: container-runtime-gvisor-containerd
+        image: {{ index .Values.images "runtime-gvisor-installation" }}
+        command: ["/scripts/install-gvisor-containerd.sh"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: host-volume
+          mountPath: /var/host
+        - name: install-gvisor
+          mountPath: /scripts
+      volumes:
+      - name: host-volume
+        hostPath:
+          path: /
+      - name: install-gvisor
+        configMap:
+          name: containerd-gvisor-{{ .Values.config.workergroup }}
+          defaultMode: 0744

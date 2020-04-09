@@ -1,0 +1,9 @@
+images:
+  runtime-gvisor-installation: "image-repository:image-tag"
+
+config:
+  binFolder: /var/bin/containerruntimes
+  workergroup: worker-ubuntu
+  nodeSelector:
+    worker.gardener.cloud/cri-name: containerd
+    worker.gardener.cloud/pool: gvisor-pool
