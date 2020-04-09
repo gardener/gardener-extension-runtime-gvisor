@@ -102,15 +102,15 @@ test:
 test-cov:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover.sh -r ./cmd/... ./pkg/...
 
-.PHONY: test-clean
-test-clean:
+.PHONY: test-cov-clean
+test-cov-clean:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover-clean.sh
 
 .PHONY: verify
 verify: check format test
 
 .PHONY: verify-extended
-verify-extended: install-requirements check-generate check format test test-clean
+verify-extended: install-requirements check-generate check format test-cov test-cov-clean
 
 .PHONY: start
 start:
