@@ -28,7 +28,7 @@ data:
     TARGET_SHIM="/var/host/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
     if [ ! -f "$TARGET_SHIM" ]; then
       echo "Adding shim binary."
-      chmod +x runsc
+      chmod +x containerd-shim-runsc-v1.linux-amd64
       mv containerd-shim-runsc-v1.linux-amd64 "$TARGET_SHIM"
     elif diff containerd-shim-runsc-v1.linux-amd64 "$TARGET_SHIM"  > /dev/null; then
       echo "Shim binary up to date."
