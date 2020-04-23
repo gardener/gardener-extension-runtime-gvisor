@@ -1,0 +1,25 @@
+kind: TestDefinition
+metadata:
+  name: gvisor-beta-serial-test-suite
+spec:
+  owner: gardener-oq@listserv.sap.com
+  description: gvisor extension test suite that includes all serial beta tests
+
+  activeDeadlineSeconds: 1800
+  labels: ["gardener", "beta"]
+  behavior:
+  - serial
+
+  command: [bash, -c]
+  args:
+    - >-
+      go test -timeout=0 -mod=vendor ./test/integration/suites
+      --v -ginkgo.v -ginkgo.progress -ginkgo.noColor
+      --report-file=$TM_EXPORT_PATH/report.json
+      -kubecfg=$TM_KUBECONFIG_PATH/gardener.config
+      -project-namespace=$PROJECT_NAMESPACE
+      -shoot-name=$SHOOT_NAME
+      -ginkgo.focus="\[BETA\].*\[SERIAL\]"
+      -ginkgo.skip="\[DISRUPTIVE\]"
+
+  image: golang:1.13.4
