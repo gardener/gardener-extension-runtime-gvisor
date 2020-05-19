@@ -1745,6 +1745,7 @@ func autoConvert_v1beta1_Condition_To_core_Condition(in *Condition, out *core.Co
 	out.LastUpdateTime = in.LastUpdateTime
 	out.Reason = in.Reason
 	out.Message = in.Message
+	out.Codes = *(*[]core.ErrorCode)(unsafe.Pointer(&in.Codes))
 	return nil
 }
 
@@ -1760,6 +1761,7 @@ func autoConvert_core_Condition_To_v1beta1_Condition(in *core.Condition, out *Co
 	out.LastUpdateTime = in.LastUpdateTime
 	out.Reason = in.Reason
 	out.Message = in.Message
+	out.Codes = *(*[]ErrorCode)(unsafe.Pointer(&in.Codes))
 	return nil
 }
 
@@ -2787,6 +2789,7 @@ func Convert_core_MachineTypeStorage_To_v1beta1_MachineTypeStorage(in *core.Mach
 func autoConvert_v1beta1_Maintenance_To_core_Maintenance(in *Maintenance, out *core.Maintenance, s conversion.Scope) error {
 	out.AutoUpdate = (*core.MaintenanceAutoUpdate)(unsafe.Pointer(in.AutoUpdate))
 	out.TimeWindow = (*core.MaintenanceTimeWindow)(unsafe.Pointer(in.TimeWindow))
+	out.ConfineSpecUpdateRollout = (*bool)(unsafe.Pointer(in.ConfineSpecUpdateRollout))
 	return nil
 }
 
@@ -2798,6 +2801,7 @@ func Convert_v1beta1_Maintenance_To_core_Maintenance(in *Maintenance, out *core.
 func autoConvert_core_Maintenance_To_v1beta1_Maintenance(in *core.Maintenance, out *Maintenance, s conversion.Scope) error {
 	out.AutoUpdate = (*MaintenanceAutoUpdate)(unsafe.Pointer(in.AutoUpdate))
 	out.TimeWindow = (*MaintenanceTimeWindow)(unsafe.Pointer(in.TimeWindow))
+	out.ConfineSpecUpdateRollout = (*bool)(unsafe.Pointer(in.ConfineSpecUpdateRollout))
 	return nil
 }
 
@@ -3573,6 +3577,7 @@ func Convert_core_SeedNetworks_To_v1beta1_SeedNetworks(in *core.SeedNetworks, ou
 
 func autoConvert_v1beta1_SeedProvider_To_core_SeedProvider(in *SeedProvider, out *core.SeedProvider, s conversion.Scope) error {
 	out.Type = in.Type
+	out.ProviderConfig = (*core.ProviderConfig)(unsafe.Pointer(in.ProviderConfig))
 	out.Region = in.Region
 	return nil
 }
@@ -3584,6 +3589,7 @@ func Convert_v1beta1_SeedProvider_To_core_SeedProvider(in *SeedProvider, out *co
 
 func autoConvert_core_SeedProvider_To_v1beta1_SeedProvider(in *core.SeedProvider, out *SeedProvider, s conversion.Scope) error {
 	out.Type = in.Type
+	out.ProviderConfig = (*ProviderConfig)(unsafe.Pointer(in.ProviderConfig))
 	out.Region = in.Region
 	return nil
 }
