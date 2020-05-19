@@ -85,9 +85,13 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 
 	return manager.
 		NewManagedResource(a.client).
-		WithNamespacedName(cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)).
+		WithNamespacedName(cr.Namespace, GetGVisorInstallationManagedResourceName(cr)).
 		WithSecretRefs(secretRefs).
 		Reconcile(ctx)
+}
+
+func GetGVisorInstallationManagedResourceName(cr *extensionsv1alpha1.ContainerRuntime) string {
+	return fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
 }
 
 func withLocalObjectRefs(refs ...string) []corev1.LocalObjectReference {
