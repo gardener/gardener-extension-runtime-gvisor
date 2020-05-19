@@ -23,7 +23,6 @@ import (
 
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/engine"
 	"k8s.io/helm/pkg/manifest"
@@ -186,4 +185,14 @@ func (c *RenderedChart) FileContent(filename string) string {
 		}
 	}
 	return ""
+}
+
+// AsSecretData returns all rendered manifests that is capable for used as data of a secret
+func (c *RenderedChart) AsSecretData() map[string][]byte {
+	data := make(map[string][]byte, len(c.Files()))
+	for fileName, fileContent := range c.Files() {
+		key := strings.ReplaceAll(fileName, "/", "_")
+		data[key] = []byte(fileContent)
+	}
+	return data
 }
