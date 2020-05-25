@@ -6,7 +6,7 @@ spec:
   description: gvisor extension test suite that includes all serial beta tests
 
   activeDeadlineSeconds: 1800
-  labels: ["gardener", "beta"]
+  labels: ["shoot", "beta"]
   behavior:
   - serial
 
