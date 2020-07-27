@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
-
 	resourcesv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
+	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -76,14 +76,14 @@ func (healthChecker *ManagedResourceHealthChecker) Check(ctx context.Context, re
 	if isHealthy, reason, err := managedResourceIsHealthy(mcmDeployment); !isHealthy {
 		healthChecker.logger.Error(err, "Health check failed")
 		return &healthcheck.SingleCheckResult{
-			IsHealthy: false,
-			Detail:    err.Error(),
-			Reason:    *reason,
+			Status: gardencorev1beta1.ConditionFalse,
+			Detail: err.Error(),
+			Reason: *reason,
 		}, nil
 	}
 
 	return &healthcheck.SingleCheckResult{
-		IsHealthy: true,
+		Status: gardencorev1beta1.ConditionTrue,
 	}, nil
 }
 

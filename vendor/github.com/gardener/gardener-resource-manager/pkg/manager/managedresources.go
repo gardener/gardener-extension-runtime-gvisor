@@ -18,7 +18,6 @@ import (
 	"context"
 
 	resourcesv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,6 +89,11 @@ func (m *ManagedResource) ForceOverwriteLabels(v bool) *ManagedResource {
 
 func (m *ManagedResource) KeepObjects(v bool) *ManagedResource {
 	m.resource.Spec.KeepObjects = &v
+	return m
+}
+
+func (m *ManagedResource) DeletePersistentVolumeClaims(v bool) *ManagedResource {
+	m.resource.Spec.DeletePersistentVolumeClaims = &v
 	return m
 }
 

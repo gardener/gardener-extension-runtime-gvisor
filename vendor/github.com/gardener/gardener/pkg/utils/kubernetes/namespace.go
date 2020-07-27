@@ -16,7 +16,6 @@ package kubernetes
 
 import (
 	"github.com/gardener/gardener/pkg/logger"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +61,7 @@ func tryUpdateNamespace(
 		return
 	})
 	if err != nil {
-		logger.Logger.Errorf("Failed to updated Namespace %s after %d attempts due to %v", meta.Name, attempt, err)
+		logger.Logger.Errorf("Failed to update Namespace %s after %d attempts due to %v", meta.Name, attempt, err)
 	}
 
 	return result, err

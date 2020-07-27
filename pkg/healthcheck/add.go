@@ -46,7 +46,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts healthcheck.DefaultAddArgs) 
 		gvisor.Type,
 		extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.ContainerRuntimeResource),
 		func() runtime.Object { return &extensionsv1alpha1.ContainerRuntimeList{} },
-		func() runtime.Object { return &extensionsv1alpha1.ContainerRuntime{} },
+		func() extensionsv1alpha1.Object { return &extensionsv1alpha1.ContainerRuntime{} },
 		mgr,
 		opts,
 		nil,

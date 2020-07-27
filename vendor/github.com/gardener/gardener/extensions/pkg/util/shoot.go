@@ -18,10 +18,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Masterminds/semver"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/secrets"
-
-	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,7 +96,7 @@ func GetOrCreateShootKubeconfig(ctx context.Context, c client.Client, certificat
 	return &secret, err
 }
 
-// KubeAPIServerServiceDNS returns a domain name which can be used to contact
+// kubeAPIServerServiceDNS returns a domain name which can be used to contact
 // the Kube-Apiserver deployment of a Shoot within the Seed cluster.
 // e.g. kube-apiserver.shoot--project--prod.svc.cluster.local.
 func kubeAPIServerServiceDNS(namespace string) string {
