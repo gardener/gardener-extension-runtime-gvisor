@@ -22,7 +22,7 @@ import (
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	gardenerutils "github.com/gardener/gardener/pkg/utils"
+	"github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/test/framework"
 	"github.com/onsi/ginkgo"
 	g "github.com/onsi/gomega"
@@ -145,7 +145,7 @@ func getNodeListWithLabel(ctx context.Context, f *framework.ShootFramework, work
 // configureWorkerForTesting configures the worker pool with test specific configuration such as a unique name and the CRI settings
 func configureWorkerForTesting(worker *gardencorev1beta1.Worker, useGVisor bool) *gardencorev1beta1.Worker {
 	allowedCharacters := "0123456789abcdefghijklmnopqrstuvwxyz"
-	id, err := gardenerutils.GenerateRandomStringFromCharset(3, allowedCharacters)
+	id, err := utils.GenerateRandomStringFromCharset(3, allowedCharacters)
 	framework.ExpectNoError(err)
 
 	worker.Name = fmt.Sprintf("test-%s", id)
