@@ -25,7 +25,7 @@ LD_FLAGS                    := $(shell ./vendor/github.com/gardener/gardener/hac
 IGNORE_OPERATION_ANNOTATION := true
 
 ### GVisor version: https://github.com/google/gvisor/releases
-RUNSC_VERSION				 	:= 20200219.0
+RUNSC_VERSION				 	:= 20200522.0
 
 ### GVisor containerd shim version: https://github.com/google/gvisor-containerd-shim/releases
 CONTAINERD_RUNSC_SHIM_VERSION 	:= v0.0.4

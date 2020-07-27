@@ -20,7 +20,7 @@ gvisorParameterUsage()
    echo "Usage: $0 -l LD_FLAGS -d DIRECTORY -i IGNORE_OPERATION_ANNOTATION -r REPO_ROOT"
    echo -e "\t-l ldflags for the Go compilation"
    echo -e "\t-d Directory to the go main() function"
-   echo -e "\t-i Wether to ignore the operation annotation on ContainerRuntime resources"
+   echo -e "\t-i Whether to ignore the operation annotation on ContainerRuntime resources"
    echo -e "\t-r Filepath to the root of the git repository"
    exit 1
 }
