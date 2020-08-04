@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
-
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/utils/kubernetes/health"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -100,14 +100,14 @@ func (healthChecker *StatefulSetHealthChecker) Check(ctx context.Context, reques
 	if isHealthy, reason, err := statefulSetIsHealthy(statefulSet); !isHealthy {
 		healthChecker.logger.Error(err, "Health check failed")
 		return &healthcheck.SingleCheckResult{
-			IsHealthy: false,
-			Detail:    err.Error(),
-			Reason:    *reason,
+			Status: gardencorev1beta1.ConditionFalse,
+			Detail: err.Error(),
+			Reason: *reason,
 		}, nil
 	}
 
 	return &healthcheck.SingleCheckResult{
-		IsHealthy: true,
+		Status: gardencorev1beta1.ConditionTrue,
 	}, nil
 }
 

@@ -21,7 +21,6 @@ import (
 
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/mock/go/context"
-
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -95,7 +94,7 @@ func (e *rootPodExecutor) Execute(ctx context.Context, command string) ([]byte, 
 
 // deploy deploys a root pod on the specified node and waits until it is running
 func (e *rootPodExecutor) deploy(ctx context.Context) error {
-	rootPod, err := DeployRootPod(ctx, e.client.Client(), e.namespace, e.nodeName)
+	rootPod, err := DeployRootPod(ctx, e.client.DirectClient(), e.namespace, e.nodeName)
 	if err != nil {
 		return err
 	}
@@ -118,7 +117,7 @@ func (e *rootPodExecutor) checkPodRunning(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := e.client.Client().Get(ctx, key, pod); err != nil {
+	if err := e.client.DirectClient().Get(ctx, key, pod); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}

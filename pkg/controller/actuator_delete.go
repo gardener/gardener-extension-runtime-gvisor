@@ -24,6 +24,7 @@ import (
 	resourcemanager "github.com/gardener/gardener-resource-manager/pkg/manager"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	utils "github.com/gardener/gardener/pkg/utils/managedresources"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -66,7 +67,7 @@ func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managed
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	if err := extensionscontroller.WaitUntilManagedResourceDeleted(timeoutCtx, a.client, namespace, managedResourceName); err != nil {
+	if err := utils.WaitUntilManagedResourceDeleted(timeoutCtx, a.client, namespace, managedResourceName); err != nil {
 		return err
 	}
 	return nil

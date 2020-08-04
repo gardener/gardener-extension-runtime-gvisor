@@ -18,7 +18,6 @@ import (
 	"context"
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +37,6 @@ func (s *Secrets) Deploy(
 	gcs gardenerkubernetes.Interface,
 	namespace string,
 ) (map[string]*corev1.Secret, error) {
-
 	// Get existing secrets in the namespace
 	existingSecrets, err := getSecrets(cs, namespace)
 	if err != nil {

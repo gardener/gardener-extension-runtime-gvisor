@@ -20,7 +20,6 @@ import (
 	extensionshandler "github.com/gardener/gardener/extensions/pkg/handler"
 	extensionspredicate "github.com/gardener/gardener/extensions/pkg/predicate"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -29,7 +28,7 @@ import (
 )
 
 const (
-	// FinalizerPrefix is the prefix name of the finalizer written by this controller.
+	// FinalizerName is the prefix name of the finalizer written by this controller.
 	FinalizerName = "extensions.gardener.cloud/containerruntime"
 	// ControllerName is the name of the controller.
 	ControllerName = "containerruntime_controller"
@@ -51,6 +50,10 @@ type AddArgs struct {
 	Resync time.Duration
 	// Type is the type of the resource considered for reconciliation.
 	Type string
+	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
+	// If the annotation is not ignored, the extension controller will only reconcile
+	// with a present operation annotation typically set during a reconcile (e.g in the maintenance time) by the Gardenlet
+	IgnoreOperationAnnotation bool
 }
 
 // Add adds an ContainerRuntime controller to the given manager using the given AddArgs.
@@ -73,10 +76,6 @@ func DefaultPredicates(ignoreOperationAnnotation bool) []predicate.Predicate {
 			extensionspredicate.IsDeleting(),
 		),
 		extensionspredicate.ShootNotFailed(),
-		extensionspredicate.Or(
-			extensionspredicate.HasOperationAnnotation(),
-			predicate.GenerationChangedPredicate{},
-		),
 	}
 }
 
@@ -88,11 +87,13 @@ func add(mgr manager.Manager, args AddArgs) error {
 
 	predicates := extensionspredicate.AddTypePredicate(args.Predicates, args.Type)
 
-	if err := ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.ContainerRuntime{}}, &handler.EnqueueRequestForObject{}, predicates...); err != nil {
-		return err
+	if args.IgnoreOperationAnnotation {
+		if err := ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.Cluster{}}, &extensionshandler.EnqueueRequestsFromMapFunc{
+			ToRequests: extensionshandler.SimpleMapper(ClusterToContainerResourceMapper(predicates...), extensionshandler.UpdateWithNew),
+		}); err != nil {
+			return err
+		}
 	}
 
-	return ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.Cluster{}}, &extensionshandler.EnqueueRequestsFromMapFunc{
-		ToRequests: extensionshandler.SimpleMapper(ClusterToContainerResourceMapper(predicates...), extensionshandler.UpdateWithNew),
-	})
+	return ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.ContainerRuntime{}}, &handler.EnqueueRequestForObject{}, predicates...)
 }

@@ -17,11 +17,10 @@ package controller
 import (
 	"context"
 
+	"github.com/gardener/gardener/pkg/apis/core"
 	gardencoreinstall "github.com/gardener/gardener/pkg/apis/core/install"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-
-	"github.com/gardener/gardener/pkg/apis/core"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -130,6 +129,21 @@ func ShootFromCluster(decoder runtime.Decoder, cluster *extensionsv1alpha1.Clust
 	}
 
 	return shoot, nil
+}
+
+// GetShoot tries to read Gardener's Cluster extension resource in the given namespace and return the embedded Shoot resource.
+func GetShoot(ctx context.Context, c client.Client, namespace string) (*gardencorev1beta1.Shoot, error) {
+	cluster := &extensionsv1alpha1.Cluster{}
+	if err := c.Get(ctx, kutil.Key(namespace), cluster); err != nil {
+		return nil, err
+	}
+
+	decoder, err := NewGardenDecoder()
+	if err != nil {
+		return nil, err
+	}
+
+	return ShootFromCluster(decoder, cluster)
 }
 
 // NewGardenDecoder returns a new Garden API decoder.

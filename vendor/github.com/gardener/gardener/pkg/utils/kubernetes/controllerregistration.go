@@ -18,7 +18,6 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardencore "github.com/gardener/gardener/pkg/client/core/clientset/versioned"
 	"github.com/gardener/gardener/pkg/logger"
-
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -62,7 +61,7 @@ func tryUpdateControllerRegistration(
 		return
 	})
 	if err != nil {
-		logger.Logger.Errorf("Failed to updated ControllerRegistration %s after %d attempts due to %v", meta.Name, attempt, err)
+		logger.Logger.Errorf("Failed to update ControllerRegistration %s after %d attempts due to %v", meta.Name, attempt, err)
 	}
 	return result, err
 }
