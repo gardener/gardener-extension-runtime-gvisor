@@ -20,24 +20,25 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/pkg/utils/retry"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
 // ShootSeedNamespace gets the shoot namespace in the seed
 func (f *ShootFramework) ShootSeedNamespace() string {
-	return computeTechnicalID(f.Project.Name, f.Shoot)
+	return ComputeTechnicalID(f.Project.Name, f.Shoot)
 }
 
 // ShootKubeconfigSecretName gets the name of the secret with the kubeconfig of the shoot
@@ -45,31 +46,28 @@ func (f *ShootFramework) ShootKubeconfigSecretName() string {
 	return fmt.Sprintf("%s.kubeconfig", f.Shoot.GetName())
 }
 
-// GetLoggingPassword returns the passwort to access the elasticseerach logging instance
-func (f *ShootFramework) GetLoggingPassword(ctx context.Context) (string, error) {
-	return GetObjectFromSecret(ctx, f.SeedClient, f.ShootSeedNamespace(), loggingIngressCredentials, "password")
-}
-
-// GetElasticsearchLogs gets logs for <podName> from the elasticsearch instance in <elasticsearchNamespace>
-func (f *ShootFramework) GetElasticsearchLogs(ctx context.Context, elasticsearchNamespace, podName string, client kubernetes.Interface) (*SearchResponse, error) {
-	elasticsearchLabels := labels.SelectorFromSet(labels.Set(map[string]string{
-		"app":  elasticsearchLogging,
+// GetLokiLogs gets logs from the last 1 hour for <key>, <value> from the loki instance in <lokiNamespace>
+func (f *ShootFramework) GetLokiLogs(ctx context.Context, tenant, lokiNamespace, key, value string, client kubernetes.Interface) (*SearchResponse, error) {
+	lokiLabels := labels.SelectorFromSet(labels.Set(map[string]string{
+		"app":  lokiLogging,
 		"role": "logging",
 	}))
 
-	now := time.Now()
-	index := fmt.Sprintf("logstash-admin-%d.%02d.%02d", now.Year(), now.Month(), now.Day())
-	loggingPassword, err := f.GetLoggingPassword(ctx)
-
-	if err != nil {
-		return nil, err
+	if tenant == "" {
+		tenant = "fake"
 	}
 
-	command := fmt.Sprintf("curl http://localhost:%d/%s/_search?q=kubernetes.pod_name:%s --user %s:%s", elasticsearchPort, index, podName, LoggingUserName, loggingPassword)
+	query := fmt.Sprintf("query=count_over_time({%s=~\"%s\"}[1h])", key, value)
+
+	command := fmt.Sprintf("wget 'http://localhost:%d/loki/api/v1/query' -O- '--header=X-Scope-OrgID: %s' --post-data='%s'", lokiPort, tenant, query)
+
 	var reader io.Reader
-	err = retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (bool, error) {
-		reader, err = PodExecByLabel(ctx, elasticsearchLabels, elasticsearchLogging, command, elasticsearchNamespace, client)
+	err := retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (bool, error) {
+		var err error
+		reader, err = PodExecByLabel(ctx, lokiLabels, lokiLogging, command, lokiNamespace, client)
+
 		if err != nil {
+			f.Logger.Warn(err)
 			return retry.MinorError(err)
 		}
 		return retry.Ok()
@@ -79,6 +77,7 @@ func (f *ShootFramework) GetElasticsearchLogs(ctx context.Context, elasticsearch
 	}
 
 	search := &SearchResponse{}
+
 	if err = json.NewDecoder(reader).Decode(search); err != nil {
 		return nil, err
 	}
@@ -136,7 +135,7 @@ func (f *ShootFramework) DumpState(ctx context.Context) {
 		// dump seed status if seed is available
 		if f.Shoot.Spec.SeedName != nil {
 			seed := &gardencorev1beta1.Seed{}
-			if err := f.GardenClient.DirectClient().Get(ctx, client.ObjectKey{Name: *f.Shoot.Spec.SeedName}, seed); err != nil {
+			if err := f.GardenClient.Client().Get(ctx, client.ObjectKey{Name: *f.Shoot.Spec.SeedName}, seed); err != nil {
 				f.Logger.Errorf("unable to get seed %s: %s", *f.Shoot.Spec.SeedName, err.Error())
 				return
 			}
@@ -169,6 +168,8 @@ func CreateShootTestArtifacts(cfg *ShootCreationConfig, projectNamespace string,
 	setShootGeneralSettings(shoot, cfg, clearExtensions)
 
 	setShootNetworkingSettings(shoot, cfg, clearDNS)
+
+	setShootTolerations(shoot)
 
 	return shoot.Name, shoot, nil
 }
@@ -294,6 +295,16 @@ func setShootNetworkingSettings(shoot *gardencorev1beta1.Shoot, cfg *ShootCreati
 
 	if clearDNS {
 		shoot.Spec.DNS = &gardencorev1beta1.DNS{}
+	}
+}
+
+// setShootTolerations sets the Shoot's tolerations
+func setShootTolerations(shoot *gardencorev1beta1.Shoot) {
+	shoot.Spec.Tolerations = []gardencorev1beta1.Toleration{
+		{
+			Key:   SeedTaintTestRun,
+			Value: pointer.String(GetTestRunID()),
+		},
 	}
 }
 

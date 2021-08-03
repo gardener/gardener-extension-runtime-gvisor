@@ -28,7 +28,7 @@ const GVisorConfigKey = "config.yaml"
 // RenderGVisorInstallationChart renders the gVisor installation chart
 func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
 	nodeSelectorValue := map[string]string{
-		extensionsv1alpha1.CRINameWorkerLabel: extensionsv1alpha1.CRINameContainerD,
+		extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
 	}
 
 	for key, value := range cr.Spec.WorkerPool.Selector.MatchLabels {

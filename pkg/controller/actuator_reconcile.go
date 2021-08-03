@@ -20,12 +20,11 @@ import (
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 
-	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
+	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/api/resources/v1alpha1"
 	"github.com/gardener/gardener-resource-manager/pkg/manager"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +41,7 @@ const (
 func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
 	chartRenderer, err := a.chartRendererFactory.NewChartRendererForShoot(cluster.Shoot.Spec.Kubernetes.Version)
 	if err != nil {
-		return errors.Wrapf(err, "could not create chart renderer for shoot '%s'", cr.Namespace)
+		return fmt.Errorf("could not create chart renderer for shoot '%s', %w", cr.Namespace, err)
 	}
 
 	// if the managed resource containing the prerequisites is not available yet, create it.
@@ -68,7 +67,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 			WithNamespacedName(cr.Namespace, GVisorManagedResourceName).
 			WithSecretRefs(secretRefs).
 			Reconcile(ctx); err != nil {
-			return errors.Wrap(err, "failed to create managed resource - prerequisite for the installation of gVisor")
+			return fmt.Errorf("failed to create managed resource - prerequisite for the installation of gVisor, %w", err)
 		}
 	}
 

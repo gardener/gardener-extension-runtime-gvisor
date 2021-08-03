@@ -24,6 +24,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -77,12 +78,10 @@ func (a *Actuator) InjectConfig(config *rest.Config) error {
 }
 
 type healthCheckUnsuccessful struct {
-	reason string
 	detail string
 }
 
 type healthCheckProgressing struct {
-	reason    string
 	detail    string
 	threshold *time.Duration
 }
@@ -102,26 +101,32 @@ type checkResultForConditionType struct {
 }
 
 // ExecuteHealthCheckFunctions executes all the health check functions, injects clients and logger & aggregates the results.
-// returns an Result for each HealthConditionTyp (e.g  ControlPlaneHealthy)
+// returns an Result for each HealthConditionType (e.g  ControlPlaneHealthy)
 func (a *Actuator) ExecuteHealthCheckFunctions(ctx context.Context, request types.NamespacedName) (*[]Result, error) {
-	_, shootClient, err := util.NewClientForShoot(ctx, a.seedClient, request.Namespace, client.Options{})
-	if err != nil {
-		msg := fmt.Errorf("failed to create shoot client in namespace '%s': %v", request.Namespace, err)
-		a.logger.Error(err, msg.Error())
-		return nil, msg
-	}
-
 	var (
-		channel = make(chan channelResult)
-		wg      sync.WaitGroup
+		shootClient client.Client
+		channel     = make(chan channelResult)
+		wg          sync.WaitGroup
 	)
 
 	wg.Add(len(a.healthChecks))
 	for _, hc := range a.healthChecks {
 		// clone to avoid problems during parallel execution
 		check := hc.HealthCheck.DeepCopy()
-		check.InjectSeedClient(a.seedClient)
-		check.InjectShootClient(shootClient)
+		SeedClientInto(a.seedClient, check)
+		if _, ok := check.(ShootClient); ok {
+			if shootClient == nil {
+				var err error
+				_, shootClient, err = util.NewClientForShoot(ctx, a.seedClient, request.Namespace, client.Options{})
+				if err != nil {
+					msg := fmt.Errorf("failed to create shoot client in namespace '%s': %v", request.Namespace, err)
+					a.logger.Error(err, msg.Error())
+					return nil, msg
+				}
+			}
+			ShootClientInto(shootClient, check)
+		}
+
 		check.SetLoggerSuffix(a.provider, a.extensionKind)
 
 		go func(ctx context.Context, request types.NamespacedName, check HealthCheck, preCheckFunc PreCheckFunc, healthConditionType string) {
@@ -133,8 +138,7 @@ func (a *Actuator) ExecuteHealthCheckFunctions(ctx context.Context, request type
 					channel <- channelResult{
 						healthCheckResult: &SingleCheckResult{
 							Status: gardencorev1beta1.ConditionFalse,
-							Detail: err.Error(),
-							Reason: "ReadExtensionObjectFailed",
+							Detail: fmt.Sprintf("failed to read the extension resource: %v", err),
 						},
 						error:               err,
 						healthConditionType: healthConditionType,
@@ -147,8 +151,7 @@ func (a *Actuator) ExecuteHealthCheckFunctions(ctx context.Context, request type
 					channel <- channelResult{
 						healthCheckResult: &SingleCheckResult{
 							Status: gardencorev1beta1.ConditionFalse,
-							Detail: err.Error(),
-							Reason: "ReadClusterObjectFailed",
+							Detail: fmt.Sprintf("failed to read the cluster resource: %v", err),
 						},
 						error:               err,
 						healthConditionType: healthConditionType,
@@ -195,12 +198,12 @@ func (a *Actuator) ExecuteHealthCheckFunctions(ctx context.Context, request type
 			continue
 		}
 		if channelResult.healthCheckResult.Status == gardencorev1beta1.ConditionFalse {
-			groupedHealthCheckResults[channelResult.healthConditionType].unsuccessfulChecks = append(groupedHealthCheckResults[channelResult.healthConditionType].unsuccessfulChecks, healthCheckUnsuccessful{reason: channelResult.healthCheckResult.Reason, detail: channelResult.healthCheckResult.Detail})
+			groupedHealthCheckResults[channelResult.healthConditionType].unsuccessfulChecks = append(groupedHealthCheckResults[channelResult.healthConditionType].unsuccessfulChecks, healthCheckUnsuccessful{detail: channelResult.healthCheckResult.Detail})
 			groupedHealthCheckResults[channelResult.healthConditionType].codes = append(groupedHealthCheckResults[channelResult.healthConditionType].codes, channelResult.healthCheckResult.Codes...)
 			continue
 		}
 		if channelResult.healthCheckResult.Status == gardencorev1beta1.ConditionProgressing {
-			groupedHealthCheckResults[channelResult.healthConditionType].progressingChecks = append(groupedHealthCheckResults[channelResult.healthConditionType].progressingChecks, healthCheckProgressing{reason: channelResult.healthCheckResult.Reason, detail: channelResult.healthCheckResult.Detail, threshold: channelResult.healthCheckResult.ProgressingThreshold})
+			groupedHealthCheckResults[channelResult.healthConditionType].progressingChecks = append(groupedHealthCheckResults[channelResult.healthConditionType].progressingChecks, healthCheckProgressing{detail: channelResult.healthCheckResult.Detail, threshold: channelResult.healthCheckResult.ProgressingThreshold})
 			groupedHealthCheckResults[channelResult.healthConditionType].codes = append(groupedHealthCheckResults[channelResult.healthConditionType].codes, channelResult.healthCheckResult.Codes...)
 			continue
 		}
@@ -211,28 +214,14 @@ func (a *Actuator) ExecuteHealthCheckFunctions(ctx context.Context, request type
 	for conditionType, result := range groupedHealthCheckResults {
 		if len(result.unsuccessfulChecks) > 0 || len(result.failedChecks) > 0 {
 			var details strings.Builder
-			if len(result.unsuccessfulChecks) > 0 {
-				details.WriteString("Unsuccessful checks: ")
-			}
-			for index, check := range result.unsuccessfulChecks {
-				details.WriteString(fmt.Sprintf("%d) %s: %s. ", index+1, check.reason, check.detail))
-			}
-			if len(result.progressingChecks) > 0 {
-				details.WriteString("Progressing checks: ")
-			}
-			for index, check := range result.progressingChecks {
-				details.WriteString(fmt.Sprintf("%d) %s: %s. ", index+1, check.reason, check.detail))
-			}
-			if len(result.failedChecks) > 0 {
-				details.WriteString("Failed checks: ")
-			}
-			for index, err := range result.failedChecks {
-				details.WriteString(fmt.Sprintf("%d) %s. ", index+1, err.Error()))
-			}
+			result.appendFailedChecksDetails(&details)
+			result.appendUnsuccessfulChecksDetails(&details)
+			result.appendProgressingChecksDetails(&details)
+
 			checkResults = append(checkResults, Result{
 				HealthConditionType: conditionType,
 				Status:              gardencorev1beta1.ConditionFalse,
-				Detail:              pointer.StringPtr(details.String()),
+				Detail:              pointer.String(trimTrailingWhitespace(details.String())),
 				SuccessfulChecks:    result.successfulChecks,
 				UnsuccessfulChecks:  len(result.unsuccessfulChecks),
 				FailedChecks:        len(result.failedChecks),
@@ -247,18 +236,23 @@ func (a *Actuator) ExecuteHealthCheckFunctions(ctx context.Context, request type
 				threshold *time.Duration
 			)
 
-			details.WriteString("Progressing checks: ")
 			for index, check := range result.progressingChecks {
-				details.WriteString(fmt.Sprintf("%d) %s: %s. ", index+1, check.reason, check.detail))
+				if len(result.progressingChecks) == 1 {
+					details.WriteString(ensureTrailingDot(check.detail))
+				} else {
+					details.WriteString(fmt.Sprintf("%d) %s ", index+1, ensureTrailingDot(check.detail)))
+				}
+
 				if check.threshold != nil && (threshold == nil || *threshold > *check.threshold) {
 					threshold = check.threshold
 				}
 			}
+
 			checkResults = append(checkResults, Result{
 				HealthConditionType:  conditionType,
 				Status:               gardencorev1beta1.ConditionProgressing,
 				ProgressingThreshold: threshold,
-				Detail:               pointer.StringPtr(details.String()),
+				Detail:               pointer.String(trimTrailingWhitespace(details.String())),
 				SuccessfulChecks:     result.successfulChecks,
 				ProgressingChecks:    len(result.progressingChecks),
 				Codes:                result.codes,

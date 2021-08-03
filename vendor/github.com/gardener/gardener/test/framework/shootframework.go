@@ -16,6 +16,7 @@ package framework
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -23,11 +24,12 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+	gardenextensionsscheme "github.com/gardener/gardener/pkg/client/extensions/clientset/versioned/scheme"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/retry"
+
 	"github.com/onsi/ginkgo"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
@@ -54,7 +56,7 @@ type ShootConfig struct {
 }
 
 // ShootFramework represents the shoot test framework that includes
-// test functions that can be executed ona specific shoot
+// test functions that can be executed on a specific shoot
 type ShootFramework struct {
 	*GardenerFramework
 	TestDescription
@@ -90,7 +92,7 @@ func NewShootFramework(cfg *ShootConfig) *ShootFramework {
 
 // NewShootFrameworkFromConfig creates a new Shoot framework from a shoot configuration without registering ginkgo
 // specific functions
-func NewShootFrameworkFromConfig(cfg *ShootConfig) (*ShootFramework, error) {
+func NewShootFrameworkFromConfig(ctx context.Context, cfg *ShootConfig) (*ShootFramework, error) {
 	var gardenerConfig *GardenerConfig
 	if cfg != nil {
 		gardenerConfig = cfg.GardenerConfig
@@ -101,7 +103,7 @@ func NewShootFrameworkFromConfig(cfg *ShootConfig) (*ShootFramework, error) {
 		Config:            cfg,
 	}
 	if cfg != nil && gardenerConfig != nil {
-		if err := f.AddShoot(context.TODO(), cfg.ShootName, cfg.GardenerConfig.ProjectNamespace); err != nil {
+		if err := f.AddShoot(ctx, cfg.ShootName, cfg.GardenerConfig.ProjectNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -132,16 +134,24 @@ func (f *ShootFramework) AfterEach(ctx context.Context) {
 		ns := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: f.Namespace},
 		}
-		err := f.ShootClient.DirectClient().Delete(ctx, ns)
+		f.Namespace = ""
+		err := f.ShootClient.Client().Delete(ctx, ns)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				ExpectNoError(err)
 			}
 		}
-		err = f.WaitUntilNamespaceIsDeleted(ctx, f.ShootClient, f.Namespace)
+		err = f.WaitUntilNamespaceIsDeleted(ctx, f.ShootClient, ns.Name)
+		if err != nil {
+			ctx2, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer cancel()
+			err2 := f.dumpNamespaceResource(ctx2, fmt.Sprintf("[SHOOT %s] [NAMESPACE %s]", f.Shoot.Name, ns.Name), f.ShootClient, ns.Name)
+			ExpectNoError(err2)
+			err2 = f.DumpDefaultResourcesInNamespace(ctx2, fmt.Sprintf("[SHOOT %s] [NAMESPACE %s]", f.Shoot.Name, ns.Name), f.ShootClient, ns.Name)
+			ExpectNoError(err2)
+		}
 		ExpectNoError(err)
-		f.Namespace = ""
-		ginkgo.By(fmt.Sprintf("deleted test namespace %s", f.Namespace))
+		ginkgo.By(fmt.Sprintf("deleted test namespace %s", ns.Name))
 	}
 }
 
@@ -153,7 +163,7 @@ func (f *ShootFramework) CreateNewNamespace(ctx context.Context) (string, error)
 			GenerateName: "gardener-e2e-",
 		},
 	}
-	if err := f.ShootClient.DirectClient().Create(ctx, ns); err != nil {
+	if err := f.ShootClient.Client().Create(ctx, ns); err != nil {
 		return "", err
 	}
 
@@ -173,13 +183,13 @@ func (f *ShootFramework) AddShoot(ctx context.Context, shootName, shootNamespace
 		err         error
 	)
 
-	if err := f.GardenClient.DirectClient().Get(ctx, client.ObjectKey{Namespace: shootNamespace, Name: shootName}, shoot); err != nil {
-		return errors.Wrapf(err, "could not get shoot")
+	if err := f.GardenClient.Client().Get(ctx, client.ObjectKey{Namespace: shootNamespace, Name: shootName}, shoot); err != nil {
+		return fmt.Errorf("could not get shoot: %w", err)
 	}
 
 	f.CloudProfile, err = f.GardenerFramework.GetCloudProfile(ctx, shoot.Spec.CloudProfileName)
 	if err != nil {
-		return errors.Wrapf(err, "unable to get cloudprofile %s", shoot.Spec.CloudProfileName)
+		return fmt.Errorf("unable to get cloudprofile %s: %w", shoot.Spec.CloudProfileName, err)
 	}
 
 	f.Project, err = f.GetShootProject(ctx, shootNamespace)
@@ -207,17 +217,18 @@ func (f *ShootFramework) AddShoot(ctx context.Context, shootName, shootNamespace
 		apiextensionsscheme.AddToScheme,
 		apiregistrationscheme.AddToScheme,
 		metricsscheme.AddToScheme,
+		gardenextensionsscheme.AddToScheme,
 	)
 	err = shootSchemeBuilder.AddToScheme(shootScheme)
 	if err != nil {
-		return errors.Wrap(err, "could not add schemes to shoot scheme")
+		return fmt.Errorf("could not add schemes to shoot scheme: %w", err)
 	}
 	if err := retry.UntilTimeout(ctx, k8sClientInitPollInterval, k8sClientInitTimeout, func(ctx context.Context) (bool, error) {
-		shootClient, err = kubernetes.NewClientFromSecret(ctx, f.SeedClient.DirectClient(), computeTechnicalID(f.Project.Name, shoot), gardencorev1beta1.GardenerName, kubernetes.WithClientOptions(client.Options{
+		shootClient, err = kubernetes.NewClientFromSecret(ctx, f.SeedClient.Client(), ComputeTechnicalID(f.Project.Name, shoot), gardencorev1beta1.GardenerName, kubernetes.WithClientOptions(client.Options{
 			Scheme: shootScheme,
 		}))
 		if err != nil {
-			return retry.MinorError(errors.Wrap(err, "could not construct Shoot client"))
+			return retry.MinorError(fmt.Errorf("could not construct Shoot client: %w", err))
 		}
 		return retry.Ok()
 	}); err != nil {
@@ -294,8 +305,8 @@ func (f *ShootFramework) UpdateShoot(ctx context.Context, update func(shoot *gar
 // GetCloudProfile returns the cloudprofile of the shoot
 func (f *ShootFramework) GetCloudProfile(ctx context.Context) (*gardencorev1beta1.CloudProfile, error) {
 	cloudProfile := &gardencorev1beta1.CloudProfile{}
-	if err := f.GardenClient.DirectClient().Get(ctx, client.ObjectKey{Name: f.Shoot.Spec.CloudProfileName}, cloudProfile); err != nil {
-		return nil, errors.Wrap(err, "could not get Seed's CloudProvider in Garden cluster")
+	if err := f.GardenClient.Client().Get(ctx, client.ObjectKey{Name: f.Shoot.Spec.CloudProfileName}, cloudProfile); err != nil {
+		return nil, fmt.Errorf("could not get Seed's CloudProvider in Garden cluster: %w", err)
 	}
 	return cloudProfile, nil
 }
@@ -304,7 +315,7 @@ func (f *ShootFramework) GetCloudProfile(ctx context.Context) (*gardencorev1beta
 func (f *ShootFramework) WaitForShootCondition(ctx context.Context, interval, timeout time.Duration, conditionType gardencorev1beta1.ConditionType, conditionStatus gardencorev1beta1.ConditionStatus) error {
 	return retry.UntilTimeout(ctx, interval, timeout, func(ctx context.Context) (done bool, err error) {
 		shoot := &gardencorev1beta1.Shoot{}
-		err = f.GardenClient.DirectClient().Get(ctx, client.ObjectKey{Namespace: f.Shoot.Namespace, Name: f.Shoot.Name}, shoot)
+		err = f.GardenClient.Client().Get(ctx, client.ObjectKey{Namespace: f.Shoot.Namespace, Name: f.Shoot.Name}, shoot)
 		if err != nil {
 			f.Logger.Infof("Error while waiting for shoot to have expected condition: %s", err.Error())
 			return retry.MinorError(err)
@@ -329,7 +340,7 @@ func (f *ShootFramework) WaitForShootCondition(ctx context.Context, interval, ti
 // available replica.
 func (f *ShootFramework) IsAPIServerRunning(ctx context.Context) (bool, error) {
 	deployment := &appsv1.Deployment{}
-	if err := f.SeedClient.DirectClient().Get(ctx, kutil.Key(f.ShootSeedNamespace(), v1beta1constants.DeploymentNameKubeAPIServer), deployment); err != nil {
+	if err := f.SeedClient.Client().Get(ctx, kutil.Key(f.ShootSeedNamespace(), v1beta1constants.DeploymentNameKubeAPIServer), deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}

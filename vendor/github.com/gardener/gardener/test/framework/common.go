@@ -24,22 +24,32 @@ const (
 	// KubeconfigSecretKeyName ist the name of the key in a secret that holds the kubeconfig of a shoot
 	KubeconfigSecretKeyName = "kubeconfig"
 
-	// LoggingUserName is the admin user name for the elasticserach logging instance of a shoot
-	LoggingUserName           = "admin"
-	loggingIngressCredentials = "logging-ingress-credentials"
-	elasticsearchLogging      = "elasticsearch-logging"
-	elasticsearchPort         = 9200
+	// LoggingUserName is the admin user name for the loki instance of a shoot
+	lokiLogging = "loki"
+	lokiPort    = 3100
 
 	// IntegrationTestPrefix is the default prefix that will be used for test shoots if none other is specified
 	IntegrationTestPrefix = "itest-"
 
 	// WorkerNamePrefix is the default prefix that will be used for Shoot workers
 	WorkerNamePrefix = "worker-"
+
+	// TestMachineryKubeconfigsPathEnvVarName is the name of the environment variable that holds the path to the
+	// testmachinery provided kubeconfigs.
+	TestMachineryKubeconfigsPathEnvVarName = "TM_KUBECONFIG_PATH"
+
+	// TestMachineryTestRunEnvVarName is the name of the environment variable that holds the testrun ID.
+	TestMachineryTestRunIDEnvVarName = "TM_TESTRUN_ID"
+
+	// SeedTaintTestRun is the taint used to limit shoots that can be scheduled on a seed to shoots created by the same testrun.
+	SeedTaintTestRun = "test.gardener.cloud/test-run"
 )
 
-// SearchResponse represents the response from a search query to elasticsearch
+// SearchResponse represents the response from a search query to loki
 type SearchResponse struct {
-	Hits struct {
-		Total uint64 `json:"total"`
-	} `json:"hits"`
+	Data struct {
+		Result []struct {
+			Value []interface{} `json:"value"`
+		} `json:"result"`
+	} `json:"data"`
 }

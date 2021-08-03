@@ -15,8 +15,8 @@
 package framework
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"regexp"
@@ -25,7 +25,6 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/hashicorp/go-multierror"
 	"github.com/onsi/ginkgo"
-	"github.com/pkg/errors"
 	apimachineryRuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
@@ -79,7 +78,8 @@ func Set(dst, src interface{}) {
 	dstValue.Elem().Set(srcValue)
 }
 
-func computeTechnicalID(projectName string, shoot *gardencorev1beta1.Shoot) string {
+//ComputeTechnicalID computes the technical ID of a shoot
+func ComputeTechnicalID(projectName string, shoot *gardencorev1beta1.Shoot) string {
 	// Use the stored technical ID in the Shoot's status field if it's there.
 	// For backwards compatibility we keep the pattern as it was before we had to change it
 	// (double hyphens).
@@ -118,7 +118,7 @@ func FileExists(kc string) bool {
 
 // ReadObject loads the contents of file and decodes it as an object.
 func ReadObject(file string, into apimachineryRuntime.Object) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func ReadObject(file string, into apimachineryRuntime.Object) error {
 
 // ParseFileAsProviderConfig parses a file as a ProviderConfig
 func ParseFileAsProviderConfig(filepath string) (*apimachineryRuntime.RawExtension, error) {
-	data, err := ioutil.ReadFile(filepath)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func ParseFileAsProviderConfig(filepath string) (*apimachineryRuntime.RawExtensi
 
 // ParseFileAsWorkers parses a file as a Worker configuration
 func ParseFileAsWorkers(filepath string) ([]gardencorev1beta1.Worker, error) {
-	data, err := ioutil.ReadFile(filepath)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -156,27 +156,32 @@ func ParseFileAsWorkers(filepath string) ([]gardencorev1beta1.Worker, error) {
 	return workers, nil
 }
 
+// GetTestRunID returns the current testmachinery testrun ID.
+func GetTestRunID() string {
+	return os.Getenv(TestMachineryTestRunIDEnvVarName)
+}
+
 // TextValidation is a map of regular expression to description
-// that is used to validate texts based on white- or blacklisted regexps.
+// that is used to validate texts based on allowed or denied regexps.
 type TextValidation map[string]string
 
-// ValidateAsWhitelist validates that all whitelisted regular expressions
+// ValidateAsAllowlist validates that all allowed regular expressions
 // are in the given text.
-func (v *TextValidation) ValidateAsWhitelist(text []byte) error {
+func (v *TextValidation) ValidateAsAllowlist(text []byte) error {
 	return v.validate(text, func(matches [][]byte) error {
 		if len(matches) == 0 {
-			return errors.New("whitelisted RegExp not found")
+			return errors.New("allowed RegExp not found")
 		}
 		return nil
 	})
 }
 
-// ValidateAsBlacklist validates that no blacklisted regular expressions
+// ValidateAsDenylist validates that no denied regular expressions
 // are in the given text.
-func (v *TextValidation) ValidateAsBlacklist(text []byte) error {
+func (v *TextValidation) ValidateAsDenylist(text []byte) error {
 	return v.validate(text, func(matches [][]byte) error {
 		if len(matches) != 0 {
-			return errors.New("blacklisted RegExp found")
+			return errors.New("denied RegExp found")
 		}
 		return nil
 	})
@@ -195,7 +200,7 @@ func (v *TextValidation) validate(text []byte, validationFunc func([][]byte) err
 
 		matches := re.FindAll(text, -1)
 		if err := validationFunc(matches); err != nil {
-			allErrs = multierror.Append(allErrs, errors.Wrapf(err, "RegExp %s validation failed: %s", reString, description))
+			allErrs = multierror.Append(allErrs, fmt.Errorf("RegExp %s validation failed: %s: %w", reString, description, err))
 		}
 	}
 

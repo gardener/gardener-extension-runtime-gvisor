@@ -20,6 +20,7 @@ import (
 	extensionshandler "github.com/gardener/gardener/extensions/pkg/handler"
 	extensionspredicate "github.com/gardener/gardener/extensions/pkg/predicate"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -58,7 +59,7 @@ type AddArgs struct {
 
 // Add adds an ContainerRuntime controller to the given manager using the given AddArgs.
 func Add(mgr manager.Manager, args AddArgs) error {
-	args.ControllerOptions.Reconciler = NewReconciler(mgr, args.Actuator)
+	args.ControllerOptions.Reconciler = NewReconciler(args.Actuator)
 	return add(mgr, args)
 }
 
@@ -70,7 +71,7 @@ func DefaultPredicates(ignoreOperationAnnotation bool) []predicate.Predicate {
 		}
 	}
 	return []predicate.Predicate{
-		extensionspredicate.Or(
+		predicate.Or(
 			extensionspredicate.HasOperationAnnotation(),
 			extensionspredicate.LastOperationNotSuccessful(),
 			extensionspredicate.IsDeleting(),
@@ -88,9 +89,10 @@ func add(mgr manager.Manager, args AddArgs) error {
 	predicates := extensionspredicate.AddTypePredicate(args.Predicates, args.Type)
 
 	if args.IgnoreOperationAnnotation {
-		if err := ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.Cluster{}}, &extensionshandler.EnqueueRequestsFromMapFunc{
-			ToRequests: extensionshandler.SimpleMapper(ClusterToContainerResourceMapper(predicates...), extensionshandler.UpdateWithNew),
-		}); err != nil {
+		if err := ctrl.Watch(
+			&source.Kind{Type: &extensionsv1alpha1.Cluster{}},
+			extensionshandler.EnqueueRequestsFromMapper(ClusterToContainerResourceMapper(predicates...), extensionshandler.UpdateWithNew),
+		); err != nil {
 			return err
 		}
 	}

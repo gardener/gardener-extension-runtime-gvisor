@@ -68,23 +68,19 @@ const (
 	// DeploymentNameKubeStateMetricsShoot is a constant for the name of a Kubernetes deployment object that contains
 	// the kube-state-metrics pod.
 	DeploymentNameKubeStateMetricsShoot = "kube-state-metrics"
-	// DeploymentNameKubeStateMetricsSeed is a constant for the name of a Kubernetes deployment object that contains
-	// the kube-state-metrics-seed pod.
-	DeploymentNameKubeStateMetricsSeed = "kube-state-metrics-seed"
-	// DeploymentNameKibana is a constant for the name of a Kubernetes deployment object that contains
-	// the kibana-logging pod.
-	DeploymentNameKibana = "kibana-logging"
 
 	// StatefulSetNameAlertManager is a constant for the name of a Kubernetes stateful set object that contains
 	// the alertmanager pod.
 	StatefulSetNameAlertManager = "alertmanager"
+	// ETCDRoleMain is a constant for the main etcd role.
+	ETCDRoleMain = "main"
+	// ETCDRoleEvents is a constant for the events etcd role.
+	ETCDRoleEvents = "events"
 	// ETCDMain is a constant for the name of etcd-main Etcd object.
-	ETCDMain = "etcd-main"
+	ETCDMain = "etcd-" + ETCDRoleMain
 	// ETCDEvents is a constant for the name of etcd-events Etcd object.
-	ETCDEvents = "etcd-events"
-	// StatefulSetNameElasticSearch is a constant for the name of a Kubernetes stateful set object that contains
-	// the elasticsearch-logging pod.
-	StatefulSetNameElasticSearch = "elasticsearch-logging"
+	ETCDEvents = "etcd-" + ETCDRoleEvents
+
 	// StatefulSetNamePrometheus is a constant for the name of a Kubernetes stateful set object that contains
 	// the prometheus pod.
 	StatefulSetNamePrometheus = "prometheus"
@@ -131,11 +127,12 @@ const (
 	GardenRoleMonitoring = "monitoring"
 	// GardenRoleOptionalAddon is the value of the GardenRole key indicating type 'optional-addon'.
 	GardenRoleOptionalAddon = "optional-addon"
+	// GardenRoleExposureClassHandler is the value of the GardenRole key indicating type 'exposureclass-handler'.
+	GardenRoleExposureClassHandler = "exposureclass-handler"
 
-	// DeprecatedShootUID is an annotation key for the shoot namespace in the seed cluster,
+	// ShootUID is an annotation key for the shoot namespace in the seed cluster,
 	// which value will be the value of `shoot.status.uid`
-	// +deprecated: Use `Cluster` resource instead.
-	DeprecatedShootUID = "shoot.garden.sapcloud.io/uid"
+	ShootUID = "shoot.gardener.cloud/uid"
 
 	// SeedResourceManagerClass is the resource-class managed by the Gardener-Resource-Manager
 	// instance in the garden namespace on the seeds.
@@ -176,9 +173,6 @@ const (
 	LabelNetworkPolicyToShootAPIServer = "networking.gardener.cloud/to-shoot-apiserver"
 	// LabelNetworkPolicyToAll disables all Ingress and Egress traffic into/from this namespace when set to "disallowed".
 	LabelNetworkPolicyToAll = "networking.gardener.cloud/to-all"
-	// LabelNetworkPolicyToElasticSearch allows Ingress to the ElasticSearch API pods labeled with 'networking.gardener.cloud/to-elasticsearch=allowed',
-	// and fluentd in 'garden' namespace.
-	LabelNetworkPolicyToElasticSearch = "networking.gardener.cloud/to-elasticsearch"
 	// LabelNetworkPolicyFromPrometheus allows Ingress from Prometheus to pods labeled with 'networking.gardener.cloud/from-prometheus=allowed' and ports
 	// named 'metrics' in the PodSpecification.
 	LabelNetworkPolicyFromPrometheus = "networking.gardener.cloud/from-prometheus"
@@ -220,22 +214,16 @@ const (
 	// AnnotationShootUseAsSeed is a constant for an annotation on a Shoot resource indicating that the Shoot shall be registered as Seed in the
 	// Garden cluster once successfully created.
 	AnnotationShootUseAsSeed = "shoot.gardener.cloud/use-as-seed"
-	// AnnotationShootUseAsSeedDeprecated is a constant for an annotation on a Shoot resource indicating that the Shoot shall be registered as Seed in the
-	// Garden cluster once successfully created.
-	//
-	// Deprecated: Use `AnnotationShootUseAsSeed` instead.
-	AnnotationShootUseAsSeedDeprecated = "shoot.garden.sapcloud.io/use-as-seed"
 	// AnnotationShootIgnoreAlerts is the key for an annotation of a Shoot cluster whose value indicates
 	// if alerts for this cluster should be ignored
 	AnnotationShootIgnoreAlerts = "shoot.gardener.cloud/ignore-alerts"
-	// AnnotationShootIgnoreAlertsDeprecated is the key for an annotation of a Shoot cluster whose value indicates
-	// if alerts for this cluster should be ignored
-	//
-	// Deprecated: Use `AnnotationShootIgnoreAlerts` instead.
-	AnnotationShootIgnoreAlertsDeprecated = "shoot.garden.sapcloud.io/ignore-alerts"
 	// AnnotationShootSkipCleanup is a key for an annotation on a Shoot resource that declares that the clean up steps should be skipped when the
 	// cluster is deleted. Concretely, this will skip everything except the deletion of (load balancer) services and persistent volume resources.
 	AnnotationShootSkipCleanup = "shoot.gardener.cloud/skip-cleanup"
+	// AnnotationReversedVPN moves the vpn-server to the seed.
+	AnnotationReversedVPN = "alpha.featuregates.shoot.gardener.cloud/reversed-vpn"
+	// AnnotationNodeLocalDNS enables a per node dns cache on the shoot cluster.
+	AnnotationNodeLocalDNS = "alpha.featuregates.shoot.gardener.cloud/node-local-dns"
 
 	// OperatingSystemConfigUnitNameKubeletService is a constant for a unit in the operating system config that contains the kubelet service.
 	OperatingSystemConfigUnitNameKubeletService = "kubelet.service"
@@ -261,6 +249,9 @@ const (
 
 	// LabelControllerRegistrationName is the key of a label on extension namespaces that indicates the controller registration name.
 	LabelControllerRegistrationName = "controllerregistration.core.gardener.cloud/name"
+
+	// LabelExposureClassHandlerName is the label key for exposure class handler names.
+	LabelExposureClassHandlerName = "handler.exposureclass.gardener.cloud/name"
 
 	// EventResourceReferenced indicates that the resource deletion is in waiting mode because the resource is still
 	// being referenced by at least one other resource (e.g. a SecretBinding is still referenced by a Shoot)

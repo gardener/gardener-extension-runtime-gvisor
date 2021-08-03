@@ -23,8 +23,8 @@ import (
 
 	"github.com/gardener/gardener/pkg/logger"
 	utilerrors "github.com/gardener/gardener/pkg/utils/errors"
+
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,9 +32,6 @@ const (
 	logKeyFlow = "flow"
 	logKeyTask = "task"
 )
-
-// ProgressReporter is continuously called on progress in a flow.
-type ProgressReporter func(context.Context, *Stats)
 
 // ErrorCleaner is called when a task which errored during the previous reconciliation phase completes with success
 type ErrorCleaner func(context.Context, string)
@@ -100,11 +97,16 @@ func (n *node) addTargets(taskIDs ...TaskID) {
 // Opts are options for a Flow execution. If they are not set, they
 // are left blank and don't affect the Flow.
 type Opts struct {
-	Logger           logrus.FieldLogger
-	ProgressReporter func(ctx context.Context, stats *Stats)
-	ErrorCleaner     func(ctx context.Context, taskID string)
-	ErrorContext     *utilerrors.ErrorContext
-	Context          context.Context
+	// Logger is used to log any output during flow execution.
+	Logger logrus.FieldLogger
+	// ProgressReporter is used to report the progress during flow execution.
+	ProgressReporter ProgressReporter
+	// ErrorCleaner is used to clean up a previously failed task.
+	ErrorCleaner func(ctx context.Context, taskID string)
+	// ErrorContext is used to store any error related context.
+	ErrorContext *utilerrors.ErrorContext
+	// Context is the context used during flow execution.
+	Context context.Context
 }
 
 // Run starts an execution of a Flow.
@@ -124,6 +126,7 @@ type nodeResult struct {
 
 // Stats are the statistics of a Flow execution.
 type Stats struct {
+	FlowName  string
 	All       TaskIDs
 	Succeeded TaskIDs
 	Failed    TaskIDs
@@ -140,6 +143,7 @@ func (s *Stats) ProgressPercent() int32 {
 // Copy deeply copies a Stats object.
 func (s *Stats) Copy() *Stats {
 	return &Stats{
+		s.FlowName,
 		s.All.Copy(),
 		s.Succeeded.Copy(),
 		s.Failed.Copy(),
@@ -150,8 +154,9 @@ func (s *Stats) Copy() *Stats {
 
 // InitialStats creates a new Stats object with the given set of initial TaskIDs.
 // The initial TaskIDs are added to all TaskIDs as well as to the pending ones.
-func InitialStats(all TaskIDs) *Stats {
+func InitialStats(flowName string, all TaskIDs) *Stats {
 	return &Stats{
+		flowName,
 		all,
 		NewTaskIDs(),
 		NewTaskIDs(),
@@ -160,7 +165,7 @@ func InitialStats(all TaskIDs) *Stats {
 	}
 }
 
-func newExecution(flow *Flow, log logrus.FieldLogger, reporter ProgressReporter, errorCleaner ErrorCleaner, errorContext *utilerrors.ErrorContext) *execution {
+func newExecution(flow *Flow, log logrus.FieldLogger, progressReporter ProgressReporter, errorCleaner ErrorCleaner, errorContext *utilerrors.ErrorContext) *execution {
 	all := NewTaskIDs()
 
 	for name := range flow.nodes {
@@ -174,10 +179,10 @@ func newExecution(flow *Flow, log logrus.FieldLogger, reporter ProgressReporter,
 
 	return &execution{
 		flow,
-		InitialStats(all),
+		InitialStats(flow.name, all),
 		nil,
 		log,
-		reporter,
+		progressReporter,
 		errorCleaner,
 		errorContext,
 		make(chan *nodeResult),
@@ -221,11 +226,11 @@ func (e *execution) runNode(ctx context.Context, id TaskID) {
 
 		if err != nil {
 			log.WithError(err).Error("Error")
+			err = fmt.Errorf("task %q failed: %w", id, err)
 		} else {
 			log.Info("Succeeded")
 		}
 
-		err = errors.Wrapf(err, "task %q failed", id)
 		e.done <- &nodeResult{TaskID: id, Error: err}
 	}()
 }
@@ -258,12 +263,20 @@ func (e *execution) cleanErrors(ctx context.Context, taskID TaskID) {
 
 func (e *execution) reportProgress(ctx context.Context) {
 	if e.progressReporter != nil {
-		e.progressReporter(ctx, e.stats.Copy())
+		e.progressReporter.Report(ctx, e.stats.Copy())
 	}
 }
 
 func (e *execution) run(ctx context.Context) error {
 	defer close(e.done)
+
+	if e.progressReporter != nil {
+		if err := e.progressReporter.Start(ctx); err != nil {
+			return err
+		}
+		defer e.progressReporter.Stop()
+	}
+
 	e.log.Info("Starting")
 	e.reportProgress(ctx)
 
@@ -274,9 +287,9 @@ func (e *execution) run(ctx context.Context) error {
 	for name := range roots {
 		if cancelErr = ctx.Err(); cancelErr == nil {
 			e.runNode(ctx, name)
-			e.reportProgress(ctx)
 		}
 	}
+	e.reportProgress(ctx)
 
 	for e.stats.Running.Len() > 0 {
 		result := <-e.done
@@ -366,7 +379,7 @@ func Causes(err error) *multierror.Error {
 		causes = make([]error, 0, len(errs))
 	)
 	for _, err := range errs {
-		causes = append(causes, errors.Cause(err))
+		causes = append(causes, utilerrors.Unwrap(err))
 	}
 	return &multierror.Error{Errors: causes}
 }

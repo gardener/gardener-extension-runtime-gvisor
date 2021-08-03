@@ -27,6 +27,7 @@ import (
 )
 
 // +genclient
+// +genclient:method=CreateAdminKubeconfigRequest,verb=create,subresource=adminkubeconfig,input=github.com/gardener/gardener/pkg/apis/authentication/v1alpha1.AdminKubeconfigRequest,result=github.com/gardener/gardener/pkg/apis/authentication/v1alpha1.AdminKubeconfigRequest
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type Shoot struct {
@@ -96,7 +97,7 @@ type ShootSpec struct {
 	SeedName *string `json:"seedName,omitempty" protobuf:"bytes,14,opt,name=seedName"`
 	// SeedSelector is an optional selector which must match a seed's labels for the shoot to be scheduled on that seed.
 	// +optional
-	SeedSelector *metav1.LabelSelector `json:"seedSelector,omitempty" protobuf:"bytes,15,opt,name=seedSelector"`
+	SeedSelector *SeedSelector `json:"seedSelector,omitempty" protobuf:"bytes,15,opt,name=seedSelector"`
 	// Resources holds a list of named resource references that can be referred to in extension configs by their names.
 	// +optional
 	Resources []NamedResourceReference `json:"resources,omitempty" protobuf:"bytes,16,rep,name=resources"`
@@ -105,6 +106,9 @@ type ShootSpec struct {
 	// +patchStrategy=merge
 	// +optional
 	Tolerations []Toleration `json:"tolerations,omitempty" patchStrategy:"merge" patchMergeKey:"key" protobuf:"bytes,17,rep,name=tolerations"`
+	// ExposureClassName is the optional name of an exposure class to apply a control plane endpoint exposure strategy.
+	// +optional
+	ExposureClassName *string `json:"exposureClassName,omitempty" protobuf:"bytes,18,opt,name=exposureClassName"`
 }
 
 // ShootStatus holds the most recently observed status of the Shoot cluster.
@@ -150,6 +154,22 @@ type ShootStatus struct {
 	// UID is a unique identifier for the Shoot cluster to avoid portability between Kubernetes clusters.
 	// It is used to compute unique hashes.
 	UID types.UID `json:"uid" protobuf:"bytes,12,opt,name=uid"`
+	// ClusterIdentity is the identity of the Shoot cluster
+	// +optional
+	ClusterIdentity *string `json:"clusterIdentity,omitempty" protobuf:"bytes,13,opt,name=clusterIdentity"`
+	// List of addresses on which the Kube API server can be reached.
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	AdvertisedAddresses []ShootAdvertisedAddress `json:"advertisedAddresses,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,14,rep,name=advertisedAddresses"`
+}
+
+// ShootAdvertisedAddress contains information for the shoot's Kube API server.
+type ShootAdvertisedAddress struct {
+	// Name of the advertised address. e.g. external
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	// The URL of the API Server. e.g. https://api.foo.bar or https://1.2.3.4
+	URL string `json:"url" protobuf:"bytes,2,opt,name=url"`
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -190,7 +210,7 @@ const (
 // NginxIngress describes configuration values for the nginx-ingress addon.
 type NginxIngress struct {
 	Addon `json:",inline" protobuf:"bytes,4,opt,name=addon"`
-	// LoadBalancerSourceRanges is list of whitelist IP sources for NginxIngress
+	// LoadBalancerSourceRanges is list of allowed IP sources for NginxIngress
 	// +optional
 	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty" protobuf:"bytes,1,rep,name=loadBalancerSourceRanges"`
 	// Config contains custom configuration for the nginx-ingress-controller configuration.
@@ -210,7 +230,7 @@ type NginxIngress struct {
 // DNS holds information about the provider, the hosted zone id and the domain.
 type DNS struct {
 	// Domain is the external available domain of the Shoot cluster. This domain will be written into the
-	// kubeconfig that is handed out to end-users.
+	// kubeconfig that is handed out to end-users. Once set it is immutable.
 	// +optional
 	Domain *string `json:"domain,omitempty" protobuf:"bytes,1,opt,name=domain"`
 	// Providers is a list of DNS providers that shall be enabled for this shoot cluster. Only relevant if
@@ -457,6 +477,35 @@ type KubeAPIServerConfig struct {
 	// of the kube-apiserver.
 	// +optional
 	ServiceAccountConfig *ServiceAccountConfig `json:"serviceAccountConfig,omitempty" protobuf:"bytes,8,opt,name=serviceAccountConfig"`
+	// WatchCacheSizes contains configuration of the API server's watch cache sizes.
+	// Configuring these flags might be useful for large-scale Shoot clusters with a lot of parallel update requests
+	// and a lot of watching controllers (e.g. large shooted Seed clusters). When the API server's watch cache's
+	// capacity is too small to cope with the amount of update requests and watchers for a particular resource, it
+	// might happen that controller watches are permanently stopped with `too old resource version` errors.
+	// Starting from kubernetes v1.19, the API server's watch cache size is adapted dynamically and setting the watch
+	// cache size flags will have no effect, except when setting it to 0 (which disables the watch cache).
+	// +optional
+	WatchCacheSizes *WatchCacheSizes `json:"watchCacheSizes,omitempty" protobuf:"bytes,9,opt,name=watchCacheSizes"`
+	// Requests contains configuration for request-specific settings for the kube-apiserver.
+	// +optional
+	Requests *KubeAPIServerRequests `json:"requests,omitempty" protobuf:"bytes,10,opt,name=requests"`
+	// EnableAnonymousAuthentication defines whether anonymous requests to the secure port
+	// of the API server should be allowed (flag `--anonymous-auth`).
+	// See: https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+	// +optional
+	EnableAnonymousAuthentication *bool `json:"enableAnonymousAuthentication,omitempty" protobuf:"varint,11,opt,name=enableAnonymousAuthentication"`
+}
+
+// KubeAPIServerRequests contains configuration for request-specific settings for the kube-apiserver.
+type KubeAPIServerRequests struct {
+	// MaxNonMutatingInflight is the maximum number of non-mutating requests in flight at a given time. When the server
+	// exceeds this, it rejects requests.
+	// +optional
+	MaxNonMutatingInflight *int32 `json:"maxNonMutatingInflight,omitempty" protobuf:"bytes,1,name=maxNonMutatingInflight"`
+	// MaxMutatingInflight is the maximum number of mutating requests in flight at a given time. When the server
+	// exceeds this, it rejects requests.
+	// +optional
+	MaxMutatingInflight *int32 `json:"maxMutatingInflight,omitempty" protobuf:"bytes,2,name=maxMutatingInflight"`
 }
 
 // ServiceAccountConfig is the kube-apiserver configuration for service accounts.
@@ -509,7 +558,6 @@ type OIDCConfig struct {
 	// The URL of the OpenID issuer, only HTTPS scheme will be accepted. If set, it will be used to verify the OIDC JSON Web Token (JWT).
 	// +optional
 	IssuerURL *string `json:"issuerURL,omitempty" protobuf:"bytes,6,opt,name=issuerURL"`
-	// ATTENTION: Only meaningful for Kubernetes >= 1.11
 	// key=value pairs that describes a required claim in the ID Token. If set, the claim is verified to be present in the ID Token with a matching value.
 	// +optional
 	RequiredClaims map[string]string `json:"requiredClaims,omitempty" protobuf:"bytes,7,rep,name=requiredClaims"`
@@ -544,6 +592,33 @@ type AdmissionPlugin struct {
 	Config *runtime.RawExtension `json:"config,omitempty" protobuf:"bytes,2,opt,name=config"`
 }
 
+// WatchCacheSizes contains configuration of the API server's watch cache sizes.
+type WatchCacheSizes struct {
+	// Default configures the default watch cache size of the kube-apiserver
+	// (flag `--default-watch-cache-size`, defaults to 100).
+	// See: https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+	// +optional
+	Default *int32 `json:"default,omitempty" protobuf:"varint,1,opt,name=default"`
+	// Resources configures the watch cache size of the kube-apiserver per resource
+	// (flag `--watch-cache-sizes`).
+	// See: https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+	// +optional
+	Resources []ResourceWatchCacheSize `json:"resources,omitempty" protobuf:"bytes,2,rep,name=resources"`
+}
+
+// ResourceWatchCacheSize contains configuration of the API server's watch cache size for one specific resource.
+type ResourceWatchCacheSize struct {
+	// APIGroup is the API group of the resource for which the watch cache size should be configured.
+	// An unset value is used to specify the legacy core API (e.g. for `secrets`).
+	// +optional
+	APIGroup *string `json:"apiGroup,omitempty" protobuf:"bytes,1,opt,name=apiGroup"`
+	// Resource is the name of the resource for which the watch cache size should be configured
+	// (in lowercase plural form, e.g. `secrets`).
+	Resource string `json:"resource" protobuf:"bytes,2,opt,name=resource"`
+	// CacheSize specifies the watch cache size that should be configured for the specified resource.
+	CacheSize int32 `json:"size" protobuf:"varint,3,opt,name=size"`
+}
+
 // KubeControllerManagerConfig contains configuration settings for the kube-controller-manager.
 type KubeControllerManagerConfig struct {
 	KubernetesConfig `json:",inline" protobuf:"bytes,1,opt,name=kubernetesConfig"`
@@ -553,6 +628,12 @@ type KubeControllerManagerConfig struct {
 	// NodeCIDRMaskSize defines the mask size for node cidr in cluster (default is 24)
 	// +optional
 	NodeCIDRMaskSize *int32 `json:"nodeCIDRMaskSize,omitempty" protobuf:"varint,3,opt,name=nodeCIDRMaskSize"`
+	// PodEvictionTimeout defines the grace period for deleting pods on failed nodes. Defaults to 2m.
+	// +optional
+	PodEvictionTimeout *metav1.Duration `json:"podEvictionTimeout,omitempty" protobuf:"bytes,4,opt,name=podEvictionTimeout"`
+	// NodeMonitorGracePeriod defines the grace period before an unresponsive node is marked unhealthy.
+	// +optional
+	NodeMonitorGracePeriod *metav1.Duration `json:"nodeMonitorGracePeriod,omitempty" protobuf:"bytes,5,opt,name=nodeMonitorGracePeriod"`
 }
 
 // HorizontalPodAutoscalerConfig contains horizontal pod autoscaler configuration settings for the kube-controller-manager.
@@ -561,9 +642,6 @@ type HorizontalPodAutoscalerConfig struct {
 	// The period after which a ready pod transition is considered to be the first.
 	// +optional
 	CPUInitializationPeriod *metav1.Duration `json:"cpuInitializationPeriod,omitempty" protobuf:"bytes,1,opt,name=cpuInitializationPeriod"`
-	// The period since last downscale, before another downscale can be performed in horizontal pod autoscaler.
-	// +optional
-	DownscaleDelay *metav1.Duration `json:"downscaleDelay,omitempty" protobuf:"bytes,2,opt,name=downscaleDelay"`
 	// The configurable window at which the controller will choose the highest recommendation for autoscaling.
 	// +optional
 	DownscaleStabilization *metav1.Duration `json:"downscaleStabilization,omitempty" protobuf:"bytes,3,opt,name=downscaleStabilization"`
@@ -576,20 +654,13 @@ type HorizontalPodAutoscalerConfig struct {
 	// The minimum change (from 1.0) in the desired-to-actual metrics ratio for the horizontal pod autoscaler to consider scaling.
 	// +optional
 	Tolerance *float64 `json:"tolerance,omitempty" protobuf:"fixed64,6,opt,name=tolerance"`
-	// The period since last upscale, before another upscale can be performed in horizontal pod autoscaler.
-	// +optional
-	UpscaleDelay *metav1.Duration `json:"upscaleDelay,omitempty" protobuf:"bytes,7,opt,name=upscaleDelay"`
 }
 
 const (
-	// DefaultHPADownscaleDelay is a constant for the default HPA downscale delay for a Shoot cluster.
-	DefaultHPADownscaleDelay = 15 * time.Minute
 	// DefaultHPASyncPeriod is a constant for the default HPA sync period for a Shoot cluster.
 	DefaultHPASyncPeriod = 30 * time.Second
 	// DefaultHPATolerance is a constant for the default HPA tolerance for a Shoot cluster.
 	DefaultHPATolerance = 0.1
-	// DefaultHPAUpscaleDelay is for the default HPA upscale delay for a Shoot cluster.
-	DefaultHPAUpscaleDelay = 1 * time.Minute
 	// DefaultDownscaleStabilization is the default HPA downscale stabilization window for a Shoot cluster
 	DefaultDownscaleStabilization = 5 * time.Minute
 	// DefaultInitialReadinessDelay is for the default HPA  ReadinessDelay value in the Shoot cluster
@@ -616,6 +687,11 @@ type KubeProxyConfig struct {
 	// defaults to IPTables.
 	// +optional
 	Mode *ProxyMode `json:"mode,omitempty" protobuf:"bytes,2,opt,name=mode,casttype=ProxyMode"`
+	// Enabled indicates whether kube-proxy should be deployed or not.
+	// Depending on the networking extensions switching kube-proxy off might be rejected. Consulting the respective documentation of the used networking extension is recommended before using this field.
+	// defaults to true if not specified.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty" protobuf:"varint,3,opt,name=enabled"`
 }
 
 // ProxyMode available in Linux platform: 'userspace' (older, going to be EOL), 'iptables'
@@ -695,6 +771,23 @@ type KubeletConfig struct {
 	// FailSwapOn makes the Kubelet fail to start if swap is enabled on the node. (default true).
 	// +optional
 	FailSwapOn *bool `json:"failSwapOn,omitempty" protobuf:"varint,13,opt,name=failSwapOn"`
+	// KubeReserved is the configuration for resources reserved for kubernetes node components (mainly kubelet and container runtime).
+	// When updating these values, be aware that cgroup resizes may not succeed on active worker nodes. Look for the NodeAllocatableEnforced event to determine if the configuration was applied.
+	// +optional
+	// Default: cpu=80m,memory=1Gi,pid=20k
+	KubeReserved *KubeletConfigReserved `json:"kubeReserved,omitempty" protobuf:"bytes,14,opt,name=kubeReserved"`
+	// SystemReserved is the configuration for resources reserved for system processes not managed by kubernetes (e.g. journald).
+	// When updating these values, be aware that cgroup resizes may not succeed on active worker nodes. Look for the NodeAllocatableEnforced event to determine if the configuration was applied.
+	// +optional
+	SystemReserved *KubeletConfigReserved `json:"systemReserved,omitempty" protobuf:"bytes,15,opt,name=systemReserved"`
+	// ImageGCHighThresholdPercent describes the percent of the disk usage which triggers image garbage collection.
+	// +optional
+	// Default: 50
+	ImageGCHighThresholdPercent *int32 `json:"imageGCHighThresholdPercent,omitempty" protobuf:"bytes,16,opt,name=imageGCHighThresholdPercent"`
+	// ImageGCLowThresholdPercent describes the percent of the disk to which garbage collection attempts to free.
+	// +optional
+	// Default: 40
+	ImageGCLowThresholdPercent *int32 `json:"imageGCLowThresholdPercent,omitempty" protobuf:"bytes,17,opt,name=imageGCLowThresholdPercent"`
 }
 
 // KubeletConfigEviction contains kubelet eviction thresholds supporting either a resource.Quantity or a percentage based value.
@@ -754,6 +847,22 @@ type KubeletConfigEvictionSoftGracePeriod struct {
 	NodeFSInodesFree *metav1.Duration `json:"nodeFSInodesFree,omitempty" protobuf:"bytes,5,opt,name=nodeFSInodesFree"`
 }
 
+// KubeletConfigReserved contains reserved resources for daemons
+type KubeletConfigReserved struct {
+	// CPU is the reserved cpu.
+	// +optional
+	CPU *resource.Quantity `json:"cpu,omitempty" protobuf:"bytes,1,opt,name=cpu"`
+	// Memory is the reserved memory.
+	// +optional
+	Memory *resource.Quantity `json:"memory,omitempty" protobuf:"bytes,2,opt,name=memory"`
+	// EphemeralStorage is the reserved ephemeral-storage.
+	// +optional
+	EphemeralStorage *resource.Quantity `json:"ephemeralStorage,omitempty" protobuf:"bytes,3,opt,name=ephemeralStorage"`
+	// PID is the reserved process-ids.
+	// +optional
+	PID *resource.Quantity `json:"pid,omitempty" protobuf:"bytes,4,opt,name=pid"`
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // Networking relevant types                                                                    //
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -786,6 +895,13 @@ const (
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // Maintenance relevant types                                                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
+const (
+	// MaintenanceTimeWindowDurationMinimum is the minimum duration for a maintenance time window.
+	MaintenanceTimeWindowDurationMinimum = 30 * time.Minute
+	// MaintenanceTimeWindowDurationMaximum is the maximum duration for a maintenance time window.
+	MaintenanceTimeWindowDurationMaximum = 6 * time.Hour
+)
 
 // Maintenance contains information about the time window for maintenance operations and which
 // operations should be performed.
@@ -870,7 +986,8 @@ type Worker struct {
 	// CABundle is a certificate bundle which will be installed onto every machine of this worker pool.
 	// +optional
 	CABundle *string `json:"caBundle,omitempty" protobuf:"bytes,2,opt,name=caBundle"`
-	// CRI contains configurations of CRI support of every machine in the worker pool
+	// CRI contains configurations of CRI support of every machine in the worker pool.
+	// Defaults to a CRI with name `containerd` when the Kubernetes version of the `Shoot` is >= 1.22.
 	// +optional
 	CRI *CRI `json:"cri,omitempty" protobuf:"bytes,3,opt,name=cri"`
 	// Kubernetes contains configuration for Kubernetes components related to this worker pool.
@@ -915,6 +1032,28 @@ type Worker struct {
 	// SystemComponents contains configuration for system components related to this worker pool
 	// +optional
 	SystemComponents *WorkerSystemComponents `json:"systemComponents,omitempty" protobuf:"bytes,18,opt,name=systemComponents"`
+	// MachineControllerManagerSettings contains configurations for different worker-pools. Eg. MachineDrainTimeout, MachineHealthTimeout.
+	// +optional
+	MachineControllerManagerSettings *MachineControllerManagerSettings `json:"machineControllerManager,omitempty" protobuf:"bytes,19,opt,name=machineControllerManager"`
+}
+
+// MachineControllerManagerSettings contains configurations for different worker-pools. Eg. MachineDrainTimeout, MachineHealthTimeout.
+type MachineControllerManagerSettings struct {
+	// MachineDrainTimeout is the period after which machine is forcefully deleted.
+	// +optional
+	MachineDrainTimeout *metav1.Duration `json:"machineDrainTimeout,omitempty" protobuf:"bytes,1,name=machineDrainTimeout"`
+	// MachineHealthTimeout is the period after which machine is declared failed.
+	// +optional
+	MachineHealthTimeout *metav1.Duration `json:"machineHealthTimeout,omitempty" protobuf:"bytes,2,name=machineHealthTimeout"`
+	// MachineCreationTimeout is the period after which creation of the machine is declared failed.
+	// +optional
+	MachineCreationTimeout *metav1.Duration `json:"machineCreationTimeout,omitempty" protobuf:"bytes,3,name=machineCreationTimeout"`
+	// MaxEvictRetries are the number of eviction retries on a pod after which drain is declared failed, and forceful deletion is triggered.
+	// +optional
+	MaxEvictRetries *int32 `json:"maxEvictRetries,omitempty" protobuf:"bytes,4,name=maxEvictRetries"`
+	// NodeConditions are the set of conditions if set to true for the period of MachineHealthTimeout, machine will be declared failed.
+	// +optional
+	NodeConditions []string `json:"nodeConditions,omitempty" protobuf:"bytes,5,name=nodeConditions"`
 }
 
 // WorkerSystemComponents contains configuration for system components related to this worker pool
@@ -926,6 +1065,7 @@ type WorkerSystemComponents struct {
 // WorkerKubernetes contains configuration for Kubernetes components related to this worker pool.
 type WorkerKubernetes struct {
 	// Kubelet contains configuration settings for all kubelets of this worker pool.
+	// If set, all `spec.kubernetes.kubelet` settings will be overwritten for this worker pool (no merge of settings).
 	// +optional
 	Kubelet *KubeletConfig `json:"kubelet,omitempty" protobuf:"bytes,1,opt,name=kubelet"`
 }
@@ -985,7 +1125,7 @@ type DataVolume struct {
 
 // CRI contains information about the Container Runtimes.
 type CRI struct {
-	// The name of the CRI library
+	// The name of the CRI library. Supported values are `docker` and `containerd`.
 	Name CRIName `json:"name" protobuf:"bytes,1,opt,name=name"`
 	// ContainerRuntimes is the list of the required container runtimes supported for a worker pool.
 	// +optional
@@ -997,6 +1137,7 @@ type CRIName string
 
 const (
 	CRINameContainerD CRIName = "containerd"
+	CRINameDocker     CRIName = "docker"
 )
 
 // ContainerRuntime contains information about worker's available container runtime
@@ -1022,11 +1163,14 @@ var (
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 const (
-	// ShootEventMaintenanceDone indicates that a maintenance operation has been performed.
-	ShootEventMaintenanceDone = "MaintenanceDone"
-	// ShootEventMaintenanceError indicates that a maintenance operation has failed.
-	ShootEventMaintenanceError = "MaintenanceError"
-
+	// ShootEventImageVersionMaintenance indicates that a maintenance operation regarding the image version has been performed.
+	ShootEventImageVersionMaintenance = "MachineImageVersionMaintenance"
+	// ShootEventK8sVersionMaintenance indicates that a maintenance operation regarding the K8s version has been performed.
+	ShootEventK8sVersionMaintenance = "KubernetesVersionMaintenance"
+	// ShootEventHibernationEnabled indicates that hibernation started.
+	ShootEventHibernationEnabled = "Hibernated"
+	// ShootEventHibernationDisabled indicates that hibernation ended.
+	ShootEventHibernationDisabled = "WokenUp"
 	// ShootEventSchedulingSuccessful indicates that a scheduling decision was taken successfully.
 	ShootEventSchedulingSuccessful = "SchedulingSuccessful"
 	// ShootEventSchedulingFailed indicates that a scheduling decision failed.
@@ -1044,6 +1188,9 @@ const (
 	ShootSystemComponentsHealthy ConditionType = "SystemComponentsHealthy"
 	// ShootHibernationPossible is a constant for a condition type indicating whether the Shoot can be hibernated.
 	ShootHibernationPossible ConditionType = "HibernationPossible"
+	// ShootMaintenancePreconditionsSatisfied is a constant for a condition type indicating whether all preconditions
+	// for a shoot maintenance operation are satisfied.
+	ShootMaintenancePreconditionsSatisfied ConditionType = "MaintenancePreconditionsSatisfied"
 )
 
 // ShootPurpose is a type alias for string.

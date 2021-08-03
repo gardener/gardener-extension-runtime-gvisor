@@ -23,7 +23,7 @@ import (
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
-	mockchartrenderer "github.com/gardener/gardener/pkg/mock/gardener/chartrenderer"
+	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -82,7 +82,7 @@ var _ = Describe("Chart package test", func() {
 				},
 				"config": map[string]interface{}{
 					"nodeSelector": map[string]string{
-						extensionsv1alpha1.CRINameWorkerLabel: extensionsv1alpha1.CRINameContainerD,
+						extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
 						"worker.gardener.cloud/pool":          "gvisor-pool",
 					},
 					"binFolder":   "/path/test",

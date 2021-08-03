@@ -106,7 +106,7 @@ type ProjectMember struct {
 	// Role represents the role of this member.
 	// IMPORTANT: Be aware that this field will be removed in the `v1` version of this API in favor of the `roles`
 	// list.
-	// TODO: Remove this field in favor of the `owner` role in `v1`.
+	// TODO: Remove this field in favor of the `roles` list in `v1`.
 	Role string `json:"role" protobuf:"bytes,2,opt,name=role"`
 	// Roles represents the list of roles of this member.
 	// +optional
@@ -144,7 +144,8 @@ const (
 	ProjectMemberOwner = "owner"
 	// ProjectMemberViewer is a const for a role that provides limited permissions to only view some resources.
 	ProjectMemberViewer = "viewer"
-
+	// ProjectMemberUserAccessManager is a const for a role that provides permissions to manage human user(s, (groups)).
+	ProjectMemberUserAccessManager = "uam"
 	// ProjectMemberExtensionPrefix is a prefix for custom roles that are not known by Gardener.
 	ProjectMemberExtensionPrefix = "extension:"
 )
@@ -166,6 +167,8 @@ const (
 	ProjectEventNamespaceReconcileFailed = "NamespaceReconcileFailed"
 	// ProjectEventNamespaceReconcileSuccessful indicates that the namespace reconciliation has succeeded.
 	ProjectEventNamespaceReconcileSuccessful = "NamespaceReconcileSuccessful"
+	// ProjectEventNamespaceNotEmpty indicates that the namespace cannot be released because it is not empty.
+	ProjectEventNamespaceNotEmpty = "NamespaceNotEmpty"
 	// ProjectEventNamespaceDeletionFailed indicates that the namespace deletion failed.
 	ProjectEventNamespaceDeletionFailed = "NamespaceDeletionFailed"
 	// ProjectEventNamespaceMarkedForDeletion indicates that the namespace has been successfully marked for deletion.
