@@ -8,6 +8,14 @@ image:
 #  Please find documentation in github.com/gardener/gardener/docs/deployment/image_vector.md
 
 resources: {}
+vpa:
+  enabled: true
+  resourcePolicy:
+    minAllowed:
+      cpu: 10m
+      memory: 50Mi
+  updatePolicy:
+    updateMode: "Auto"
 
 leaderElection:
   resourceLock: configmapsleases
