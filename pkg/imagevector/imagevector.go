@@ -12,31 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate packr2
-
 package imagevector
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/version"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
-	"github.com/gobuffalo/packr/v2"
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var imageVector imagevector.ImageVector
 
 func init() {
-	box := packr.New("charts", "../../charts")
+	var err error
 
-	imagesYaml, err := box.FindString("images.yaml")
-	runtime.Must(err)
-
-	imageVector, err = imagevector.Read(strings.NewReader(imagesYaml))
+	imageVector, err = imagevector.Read(strings.NewReader(charts.ImagesYAML))
 	runtime.Must(err)
 	// image vector for components deployed by the gVisor extension
 	imageVector, err = imagevector.WithEnvOverride(imageVector)
@@ -45,7 +40,6 @@ func init() {
 	image, err := imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
 	runtime.Must(err)
 	fmt.Printf("Image %q - using image name: %q \n", gvisor.RuntimeGVisorInstallationImageName, image.String())
-	runtime.Must(err)
 }
 
 // ImageVector is the image vector that contains all the needed images.
