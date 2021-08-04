@@ -16,20 +16,15 @@
 
 set -e
 
-RUNSC_VERSION=$1
-CONTAINERD_RUNSC_SHIM_VERSION=$2
+GVISOR_VERSION=$1
 
-# Install runsc (gvisor)
-URL=https://storage.googleapis.com/gvisor/releases/release/$RUNSC_VERSION
-wget ${URL}/runsc
-wget ${URL}/runsc.sha512
-sha512sum -c runsc.sha512
-rm -f runsc.sha512
-mv runsc /usr/local/bin
-chmod 0755 /usr/local/bin/runsc
-
-# Install runsc containerd shim
-URL=https://github.com/google/gvisor-containerd-shim/releases/download/$CONTAINERD_RUNSC_SHIM_VERSION
-wget ${URL}/containerd-shim-runsc-v1.linux-amd64
-mv containerd-shim-runsc-v1.linux-amd64 /usr/local/bin
-chmod 0755 /usr/local/bin/containerd-shim-runsc-v1.linux-amd64
+# Install runsc (gVisor) and containerd-shim-runsc-v1 (shim for gVisor)
+ARCH=$(uname -m)
+URL=https://storage.googleapis.com/gvisor/releases/release/${GVISOR_VERSION}/${ARCH}
+wget ${URL}/runsc ${URL}/runsc.sha512 \
+    ${URL}/containerd-shim-runsc-v1 ${URL}/containerd-shim-runsc-v1.sha512
+sha512sum -c runsc.sha512 \
+    -c containerd-shim-runsc-v1.sha512
+rm -f *.sha512
+chmod a+rx runsc containerd-shim-runsc-v1
+mv runsc containerd-shim-runsc-v1 /usr/local/bin
