@@ -38,16 +38,15 @@ rules:
   - update
   - patch
 - apiGroups:
-  - ""
+  - coordination.k8s.io
   resources:
-  - configmaps
-  - events
+  - leases
   verbs:
   - create
 - apiGroups:
-  - ""
+  - coordination.k8s.io
   resources:
-  - configmaps
+  - leases
   resourceNames:
   - runtime-gvisor-leader-election
   verbs:
