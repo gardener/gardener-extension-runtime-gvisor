@@ -35,7 +35,7 @@ data:
     else
       echo "Updating shim binary."
       chmod +x containerd-shim-runsc-v1
-      # shim is a long running process. Will only use new shim, wenn old shim stopped.
+      # shim is a long running process. Will only use new shim, when old shim stopped.
       # killing the shim is not an option, as it kills its containers
       mv containerd-shim-runsc-v1 "$TARGET_SHIM"
     fi
