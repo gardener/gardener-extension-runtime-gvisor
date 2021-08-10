@@ -1,28 +1,41 @@
+// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package framework
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"time"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
-	gardenerutils "github.com/gardener/gardener/pkg/utils"
+	"github.com/gardener/gardener/pkg/utils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/kubernetes/health"
 	"github.com/gardener/gardener/pkg/utils/retry"
-	"github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	k8sretry "k8s.io/client-go/util/retry"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -36,11 +49,11 @@ func (f *CommonFramework) WaitUntilDaemonSetIsRunning(ctx context.Context, k8sCl
 		}
 
 		if err := health.CheckDaemonSet(daemonSet); err != nil {
-			f.Logger.Infof("Waiting for %s to be ready!!", daemonSetName)
-			return retry.MinorError(fmt.Errorf("daemon set %s is not healthy: %v", daemonSetName, err))
+			f.Logger.Infof("Waiting for %q to be ready!", daemonSetName)
+			return retry.MinorError(fmt.Errorf("daemon set %q is not healthy: %v", daemonSetName, err))
 		}
 
-		f.Logger.Infof("%s is now ready!!", daemonSetName)
+		f.Logger.Infof("Daemon set %q is now ready!", daemonSetName)
 		return retry.Ok()
 	})
 }
@@ -49,13 +62,13 @@ func (f *CommonFramework) WaitUntilDaemonSetIsRunning(ctx context.Context, k8sCl
 func (f *CommonFramework) WaitUntilStatefulSetIsRunning(ctx context.Context, statefulSetName, statefulSetNamespace string, c kubernetes.Interface) error {
 	return retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
 		statefulSet := &appsv1.StatefulSet{}
-		if err := c.DirectClient().Get(ctx, client.ObjectKey{Namespace: statefulSetNamespace, Name: statefulSetName}, statefulSet); err != nil {
+		if err := c.Client().Get(ctx, client.ObjectKey{Namespace: statefulSetNamespace, Name: statefulSetName}, statefulSet); err != nil {
 			return retry.MinorError(err)
 		}
 
 		if err := health.CheckStatefulSet(statefulSet); err != nil {
-			f.Logger.Infof("Waiting for %s to be ready!!", statefulSetName)
-			return retry.MinorError(fmt.Errorf("stateful set %s is not healthy: %v", statefulSetName, err))
+			f.Logger.Infof("Waiting for %q to be ready!", statefulSetName)
+			return retry.MinorError(fmt.Errorf("stateful set %q is not healthy: %v", statefulSetName, err))
 		}
 
 		f.Logger.Infof("%s is now ready!!", statefulSetName)
@@ -67,9 +80,9 @@ func (f *CommonFramework) WaitUntilStatefulSetIsRunning(ctx context.Context, sta
 func (f *CommonFramework) WaitUntilDeploymentIsReady(ctx context.Context, name string, namespace string, k8sClient kubernetes.Interface) error {
 	return retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
 		deployment := &appsv1.Deployment{}
-		if err := k8sClient.DirectClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
+		if err := k8sClient.Client().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
 			if apierrors.IsNotFound(err) {
-				f.Logger.Infof("Waiting for deployment %s/%s to be ready!", namespace, name)
+				f.Logger.Infof("Waiting for deployment '%s/%s' to be ready!", namespace, name)
 				return retry.MinorError(fmt.Errorf("deployment %q in namespace %q does not exist", name, namespace))
 			}
 			return retry.SevereError(err)
@@ -77,7 +90,7 @@ func (f *CommonFramework) WaitUntilDeploymentIsReady(ctx context.Context, name s
 
 		err = health.CheckDeployment(deployment)
 		if err != nil {
-			f.Logger.Infof("Waiting for deployment %s/%s to be ready!", namespace, name)
+			f.Logger.Infof("Waiting for deployment '%s/%s' to be ready!", namespace, name)
 			return retry.MinorError(fmt.Errorf("deployment %q in namespace %q is not healthy", name, namespace))
 		}
 		return retry.Ok()
@@ -88,10 +101,10 @@ func (f *CommonFramework) WaitUntilDeploymentIsReady(ctx context.Context, name s
 func (f *CommonFramework) WaitUntilDeploymentsWithLabelsIsReady(ctx context.Context, deploymentLabels labels.Selector, namespace string, k8sClient kubernetes.Interface) error {
 	return retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
 		deployments := &appsv1.DeploymentList{}
-		if err := k8sClient.DirectClient().List(ctx, deployments, client.MatchingLabelsSelector{Selector: deploymentLabels}, client.InNamespace(namespace)); err != nil {
+		if err := k8sClient.Client().List(ctx, deployments, client.MatchingLabelsSelector{Selector: deploymentLabels}, client.InNamespace(namespace)); err != nil {
 			if apierrors.IsNotFound(err) {
 				f.Logger.Infof("Waiting for deployments with labels: %v to be ready!!", deploymentLabels.String())
-				return retry.MinorError(fmt.Errorf("no deployments with labels %s exist", deploymentLabels.String()))
+				return retry.MinorError(fmt.Errorf("no deployments with labels '%s' exist", deploymentLabels.String()))
 			}
 			return retry.SevereError(err)
 		}
@@ -99,8 +112,8 @@ func (f *CommonFramework) WaitUntilDeploymentsWithLabelsIsReady(ctx context.Cont
 		for _, deployment := range deployments.Items {
 			err = health.CheckDeployment(&deployment)
 			if err != nil {
-				f.Logger.Infof("Waiting for deployments with labels: %v to be ready!!", deploymentLabels)
-				return retry.MinorError(fmt.Errorf("deployment %s is not healthy: %v", deployment.Name, err))
+				f.Logger.Infof("Waiting for deployments with labels: %v to be ready!", deploymentLabels)
+				return retry.MinorError(fmt.Errorf("deployment %q is not healthy: %v", deployment.Name, err))
 			}
 		}
 		return retry.Ok()
@@ -110,13 +123,13 @@ func (f *CommonFramework) WaitUntilDeploymentsWithLabelsIsReady(ctx context.Cont
 // WaitUntilNamespaceIsDeleted waits until a namespace has been deleted
 func (f *CommonFramework) WaitUntilNamespaceIsDeleted(ctx context.Context, k8sClient kubernetes.Interface, ns string) error {
 	return retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (bool, error) {
-		if err := k8sClient.DirectClient().Get(ctx, client.ObjectKey{Name: ns}, &corev1.Namespace{}); err != nil {
+		if err := k8sClient.Client().Get(ctx, client.ObjectKey{Name: ns}, &corev1.Namespace{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return retry.Ok()
 			}
 			return retry.MinorError(err)
 		}
-		return retry.MinorError(errors.Errorf("Namespace %s is not deleted yet", ns))
+		return retry.MinorError(fmt.Errorf("Namespace %q is not deleted yet", ns))
 	})
 }
 
@@ -135,12 +148,12 @@ func WaitForNNodesToBeHealthyInWorkerPool(ctx context.Context, k8sClient kuberne
 
 		nodeCount := len(nodeList.Items)
 		if nodeCount != n {
-			return retry.MinorError(fmt.Errorf("waiting for exactly %d nodes to be ready: only %d nodes registered in the cluster", n, nodeCount))
+			return retry.MinorError(fmt.Errorf("waiting for %d nodes to be ready: only %d nodes registered in the cluster", n, nodeCount))
 		}
 
 		for _, node := range nodeList.Items {
 			if err := health.CheckNode(&node); err != nil {
-				return retry.MinorError(fmt.Errorf("waiting for exactly %d nodes to be ready: node %q is not healthy: %v", n, node.Name, err))
+				return retry.MinorError(fmt.Errorf("waiting for %d nodes to be ready: node %q is not healthy: %v", n, node.Name, err))
 			}
 		}
 
@@ -162,14 +175,14 @@ func GetAllNodesInWorkerPool(ctx context.Context, c kubernetes.Interface, worker
 		selectorOption.Selector = labels.SelectorFromSet(labels.Set{"worker.gardener.cloud/pool": *workerGroup})
 	}
 
-	err := c.DirectClient().List(ctx, nodeList, selectorOption)
+	err := c.Client().List(ctx, nodeList, selectorOption)
 	return nodeList, err
 }
 
 // GetPodsByLabels fetches all pods with the desired set of labels <labelsMap>
 func GetPodsByLabels(ctx context.Context, labelsSelector labels.Selector, c kubernetes.Interface, namespace string) (*corev1.PodList, error) {
 	podList := &corev1.PodList{}
-	err := c.DirectClient().List(ctx, podList,
+	err := c.Client().List(ctx, podList,
 		client.InNamespace(namespace),
 		client.MatchingLabelsSelector{Selector: labelsSelector})
 	if err != nil {
@@ -211,28 +224,14 @@ func PodExecByLabel(ctx context.Context, podLabels labels.Selector, podContainer
 	return NewPodExecutor(client).Execute(ctx, pod.Namespace, pod.Name, podContainer, command)
 }
 
-// DeleteResource deletes a kubernetes resource
-func DeleteResource(ctx context.Context, k8sClient kubernetes.Interface, resource runtime.Object) error {
-	err := k8sClient.DirectClient().Delete(ctx, resource)
-	if apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
-}
-
 // DeleteAndWaitForResource deletes a kubernetes resource and waits for its deletion
-func DeleteAndWaitForResource(ctx context.Context, k8sClient kubernetes.Interface, resource runtime.Object, timeout time.Duration) error {
-	if err := DeleteResource(ctx, k8sClient, resource); err != nil {
+func DeleteAndWaitForResource(ctx context.Context, k8sClient kubernetes.Interface, resource client.Object, timeout time.Duration) error {
+	if err := kutil.DeleteObject(ctx, k8sClient.Client(), resource); err != nil {
 		return err
 	}
 	return retry.UntilTimeout(ctx, 5*time.Second, timeout, func(ctx context.Context) (done bool, err error) {
-		newResource := resource.DeepCopyObject()
-		key, err := client.ObjectKeyFromObject(resource)
-		if err != nil {
-			return retry.MinorError(err)
-		}
-
-		if err := k8sClient.DirectClient().Get(ctx, key, newResource); err != nil {
+		newResource := resource.DeepCopyObject().(client.Object)
+		if err := k8sClient.Client().Get(ctx, client.ObjectKeyFromObject(resource), newResource); err != nil {
 			if apierrors.IsNotFound(err) {
 				return retry.Ok()
 			}
@@ -256,7 +255,7 @@ func ScaleDeployment(timeout time.Duration, client client.Client, desiredReplica
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve the replica count of the %s deployment: '%v'", name, err)
+		return nil, fmt.Errorf("failed to retrieve the replica count of deployment %q: '%w'", name, err)
 	}
 	if replicas == nil || *replicas == *desiredReplicas {
 		return replicas, nil
@@ -264,12 +263,12 @@ func ScaleDeployment(timeout time.Duration, client client.Client, desiredReplica
 
 	// scale the deployment
 	if err := kubernetes.ScaleDeployment(ctxSetup, client, kutil.Key(namespace, name), *desiredReplicas); err != nil {
-		return nil, fmt.Errorf("failed to scale the replica count of the %s deployment: '%v'", name, err)
+		return nil, fmt.Errorf("failed to scale the replica count of deployment %q: '%w'", name, err)
 	}
 
 	// wait until scaled
 	if err := WaitUntilDeploymentScaled(ctxSetup, client, namespace, name, *desiredReplicas); err != nil {
-		return nil, fmt.Errorf("failed to wait until the %s deployment is scaled: '%v'", name, err)
+		return nil, fmt.Errorf("failed to wait until deployment %q is scaled: '%w'", name, err)
 	}
 	return replicas, nil
 }
@@ -320,10 +319,13 @@ func ShootCreationCompleted(newShoot *gardencorev1beta1.Shoot) (bool, string) {
 
 	if newShoot.Status.LastOperation != nil {
 		if newShoot.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeCreate ||
-			newShoot.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeReconcile {
+			newShoot.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeReconcile ||
+			newShoot.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeRestore {
 			if newShoot.Status.LastOperation.State != gardencorev1beta1.LastOperationStateSucceeded {
-				return false, "last operation type was create or reconcile but state was not succeeded"
+				return false, "last operation type was create, reconcile or restore but state was not succeeded"
 			}
+		} else if newShoot.Status.LastOperation.Type == gardencorev1beta1.LastOperationTypeMigrate {
+			return false, "last operation type was migrate, the migration process is not finished yet"
 		}
 	}
 
@@ -337,7 +339,7 @@ func DownloadKubeconfig(ctx context.Context, client kubernetes.Interface, namesp
 		return err
 	}
 	if downloadPath != "" {
-		err = ioutil.WriteFile(downloadPath, []byte(kubeconfig), 0755)
+		err = os.WriteFile(downloadPath, []byte(kubeconfig), 0755)
 		if err != nil {
 			return err
 		}
@@ -345,25 +347,22 @@ func DownloadKubeconfig(ctx context.Context, client kubernetes.Interface, namesp
 	return nil
 }
 
-// UpdateSecret updates the Secret with an backoff
-func UpdateSecret(ctx context.Context, k8sClient kubernetes.Interface, secret *corev1.Secret) error {
-	if err := k8sretry.RetryOnConflict(k8sretry.DefaultBackoff, func() (err error) {
-		existingSecret := &corev1.Secret{}
-		if err = k8sClient.DirectClient().Get(ctx, client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}, existingSecret); err != nil {
-			return err
-		}
-		existingSecret.Data = secret.Data
-		return k8sClient.DirectClient().Update(ctx, existingSecret)
-	}); err != nil {
+// PatchSecret patches the Secret.
+func PatchSecret(ctx context.Context, c client.Client, secret *corev1.Secret) error {
+	existingSecret := &corev1.Secret{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}, existingSecret); err != nil {
 		return err
 	}
-	return nil
+	patch := client.MergeFrom(existingSecret.DeepCopy())
+
+	existingSecret.Data = secret.Data
+	return c.Patch(ctx, existingSecret, patch)
 }
 
 // GetObjectFromSecret returns object from secret
 func GetObjectFromSecret(ctx context.Context, k8sClient kubernetes.Interface, namespace, secretName, objectKey string) (string, error) {
 	secret := &corev1.Secret{}
-	err := k8sClient.DirectClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretName}, secret)
+	err := k8sClient.Client().Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretName}, secret)
 	if err != nil {
 		return "", err
 	}
@@ -377,7 +376,7 @@ func GetObjectFromSecret(ctx context.Context, k8sClient kubernetes.Interface, na
 // NewClientFromServiceAccount returns a kubernetes client for a service account.
 func NewClientFromServiceAccount(ctx context.Context, k8sClient kubernetes.Interface, account *corev1.ServiceAccount) (kubernetes.Interface, error) {
 	secret := &corev1.Secret{}
-	err := k8sClient.DirectClient().Get(ctx, client.ObjectKey{Namespace: account.Namespace, Name: account.Secrets[0].Name}, secret)
+	err := k8sClient.Client().Get(ctx, client.ObjectKey{Namespace: account.Namespace, Name: account.Secrets[0].Name}, secret)
 	if err != nil {
 		return nil, err
 	}
@@ -404,11 +403,10 @@ func NewClientFromServiceAccount(ctx context.Context, k8sClient kubernetes.Inter
 func WaitUntilPodIsRunning(ctx context.Context, log *logrus.Logger, podName, podNamespace string, c kubernetes.Interface) error {
 	return retry.Until(ctx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
 		pod := &corev1.Pod{}
-		if err := c.DirectClient().Get(ctx, client.ObjectKey{Namespace: podNamespace, Name: podName}, pod); err != nil {
+		if err := c.Client().Get(ctx, client.ObjectKey{Namespace: podNamespace, Name: podName}, pod); err != nil {
 			return retry.SevereError(err)
 		}
 		if !health.IsPodReady(pod) {
-			log.Infof("Waiting for %s to be ready!!", podName)
 			log.Infof("Waiting for %s to be ready!!", podName)
 			return retry.MinorError(fmt.Errorf(`pod "%s/%s" is not ready: %v`, podNamespace, podName, err))
 		}
@@ -439,7 +437,7 @@ func (f *CommonFramework) WaitUntilPodIsRunningWithLabels(ctx context.Context, l
 func DeployRootPod(ctx context.Context, c client.Client, namespace string, nodename *string) (*corev1.Pod, error) {
 	podPriority := int32(0)
 	allowedCharacters := "0123456789abcdefghijklmnopqrstuvwxyz"
-	id, err := gardenerutils.GenerateRandomStringFromCharset(3, allowedCharacters)
+	id, err := utils.GenerateRandomStringFromCharset(3, allowedCharacters)
 	if err != nil {
 		return nil, err
 	}
@@ -456,7 +454,7 @@ func DeployRootPod(ctx context.Context, c client.Client, namespace string, noden
 			Containers: []corev1.Container{
 				{
 					Name:  "root-container",
-					Image: "busybox",
+					Image: "eu.gcr.io/gardener-project/3rd/busybox:1.29.2",
 					Command: []string{
 						"sleep",
 						"10000000",
@@ -466,7 +464,7 @@ func DeployRootPod(ctx context.Context, c client.Client, namespace string, noden
 					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 					ImagePullPolicy:          corev1.PullIfNotPresent,
 					SecurityContext: &corev1.SecurityContext{
-						Privileged: pointer.BoolPtr(true),
+						Privileged: pointer.Bool(true),
 					},
 					Stdin: true,
 					VolumeMounts: []corev1.VolumeMount{

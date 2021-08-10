@@ -18,18 +18,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
+
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck/general"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 )
 
 // GVisorInstallationManagedResourcesHealthChecker contains all the information for the ManagedResource HealthCheck
@@ -73,7 +71,7 @@ func (healthChecker *GVisorInstallationManagedResourcesHealthChecker) Check(ctx 
 			Namespace: request.Namespace,
 		},
 	}
-	if err := healthChecker.seedClient.Get(ctx, kutil.KeyFromObject(cr), cr); err != nil {
+	if err := healthChecker.seedClient.Get(ctx, client.ObjectKeyFromObject(cr), cr); err != nil {
 		return nil, err
 	}
 
@@ -81,10 +79,14 @@ func (healthChecker *GVisorInstallationManagedResourcesHealthChecker) Check(ctx 
 	managedResourceInstallationName := controller.GetGVisorInstallationManagedResourceName(cr)
 
 	checker := general.CheckManagedResource(managedResourceInstallationName)
-	checker.InjectSeedClient(healthChecker.seedClient)
-	checker.SetLoggerSuffix("", extensionsv1alpha1.ContainerRuntimeResource)
+	mrChecker, ok := checker.(*general.ManagedResourceHealthChecker)
+	if !ok {
+		return nil, fmt.Errorf("cannot construct managed resource health checker")
+	}
+	mrChecker.InjectSeedClient(healthChecker.seedClient)
+	mrChecker.SetLoggerSuffix("", extensionsv1alpha1.ContainerRuntimeResource)
 
-	return checker.Check(ctx, types.NamespacedName{
+	return mrChecker.Check(ctx, types.NamespacedName{
 		Namespace: request.Namespace,
 	})
 }

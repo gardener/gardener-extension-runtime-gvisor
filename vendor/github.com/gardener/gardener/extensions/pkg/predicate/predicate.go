@@ -17,8 +17,9 @@ package predicate
 import (
 	"errors"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	extensionsevent "github.com/gardener/gardener/extensions/pkg/event"
 	extensionsinject "github.com/gardener/gardener/extensions/pkg/inject"
 	gardencore "github.com/gardener/gardener/pkg/api/core"
 	"github.com/gardener/gardener/pkg/api/extensions"
@@ -26,21 +27,20 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/version"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
 // Log is the logger for predicates.
 var Log logr.Logger = log.Log
 
 // EvalGeneric returns true if all predicates match for the given object.
-func EvalGeneric(obj runtime.Object, predicates ...predicate.Predicate) bool {
-	e := extensionsevent.NewFromObject(obj)
-
+func EvalGeneric(obj client.Object, predicates ...predicate.Predicate) bool {
+	e := event.GenericEvent{Object: obj}
 	for _, p := range predicates {
 		if !p.Generic(e) {
 			return false
@@ -58,18 +58,19 @@ type shootNotFailedMapper struct {
 }
 
 func (s *shootNotFailedMapper) Map(e event.GenericEvent) bool {
-	if e.Meta == nil {
-		return false
+	// Return true for resources in the garden namespace, as they are not associated with a shoot
+	if e.Object.GetNamespace() == v1beta1constants.GardenNamespace {
+		return true
 	}
 
 	// Wait for cache sync because of backing client cache.
-	if !s.Cache.WaitForCacheSync(s.Context.Done()) {
+	if !s.Cache.WaitForCacheSync(s.Context) {
 		err := errors.New("failed to wait for caches to sync")
 		s.log.Error(err, "Could not wait for Cache to sync", "predicate", "ShootNotFailed")
 		return false
 	}
 
-	cluster, err := extensionscontroller.GetCluster(s.Context, s.Client, e.Meta.GetNamespace())
+	cluster, err := extensionscontroller.GetCluster(s.Context, s.Client, e.Object.GetNamespace())
 	if err != nil {
 		s.log.Error(err, "Could not retrieve corresponding cluster")
 		return false
@@ -88,54 +89,6 @@ func ShootNotFailed() predicate.Predicate {
 		CreateTrigger, UpdateNewTrigger, DeleteTrigger, GenericTrigger)
 }
 
-type or struct {
-	predicates []predicate.Predicate
-}
-
-func (o *or) orRange(f func(predicate.Predicate) bool) bool {
-	for _, p := range o.predicates {
-		if f(p) {
-			return true
-		}
-	}
-	return false
-}
-
-// Create implements Predicate.
-func (o *or) Create(event event.CreateEvent) bool {
-	return o.orRange(func(p predicate.Predicate) bool { return p.Create(event) })
-}
-
-// Delete implements Predicate.
-func (o *or) Delete(event event.DeleteEvent) bool {
-	return o.orRange(func(p predicate.Predicate) bool { return p.Delete(event) })
-}
-
-// Update implements Predicate.
-func (o *or) Update(event event.UpdateEvent) bool {
-	return o.orRange(func(p predicate.Predicate) bool { return p.Update(event) })
-}
-
-// Generic implements Predicate.
-func (o *or) Generic(event event.GenericEvent) bool {
-	return o.orRange(func(p predicate.Predicate) bool { return p.Generic(event) })
-}
-
-// InjectFunc implements Injector.
-func (o *or) InjectFunc(f inject.Func) error {
-	for _, p := range o.predicates {
-		if err := f(p); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Or builds a logical OR gate of passed predicates.
-func Or(predicates ...predicate.Predicate) predicate.Predicate {
-	return &or{predicates}
-}
-
 // HasType filters the incoming OperatingSystemConfigs for ones that have the same type
 // as the given type.
 func HasType(typeName string) predicate.Predicate {
@@ -152,22 +105,22 @@ func HasType(typeName string) predicate.Predicate {
 // HasName returns a predicate that matches the given name of a resource.
 func HasName(name string) predicate.Predicate {
 	return FromMapper(MapperFunc(func(e event.GenericEvent) bool {
-		return e.Meta.GetName() == name
+		return e.Object.GetName() == name
 	}), CreateTrigger, UpdateNewTrigger, DeleteTrigger, GenericTrigger)
 }
 
 // HasOperationAnnotation is a predicate for the operation annotation.
 func HasOperationAnnotation() predicate.Predicate {
 	return FromMapper(MapperFunc(func(e event.GenericEvent) bool {
-		return e.Meta.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationReconcile ||
-			e.Meta.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationRestore ||
-			e.Meta.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationMigrate
+		return e.Object.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationReconcile ||
+			e.Object.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationRestore ||
+			e.Object.GetAnnotations()[v1beta1constants.GardenerOperation] == v1beta1constants.GardenerOperationMigrate
 	}), CreateTrigger, UpdateNewTrigger, GenericTrigger)
 }
 
 // LastOperationNotSuccessful is a predicate for unsuccessful last operations **only** for creation events.
 func LastOperationNotSuccessful() predicate.Predicate {
-	operationNotSucceeded := func(obj runtime.Object) bool {
+	operationNotSucceeded := func(obj client.Object) bool {
 		acc, err := extensions.Accessor(obj)
 		if err != nil {
 			return false
@@ -197,7 +150,7 @@ func LastOperationNotSuccessful() predicate.Predicate {
 // IsDeleting is a predicate for objects having a deletion timestamp.
 func IsDeleting() predicate.Predicate {
 	return FromMapper(MapperFunc(func(e event.GenericEvent) bool {
-		return e.Meta.GetDeletionTimestamp() != nil
+		return e.Object.GetDeletionTimestamp() != nil
 	}), CreateTrigger, UpdateNewTrigger, GenericTrigger)
 }
 
@@ -216,9 +169,8 @@ func AddTypePredicate(predicates []predicate.Predicate, extensionTypes ...string
 	for _, extensionType := range extensionTypes {
 		orPreds = append(orPreds, HasType(extensionType))
 	}
-	orPred := Or(orPreds...)
 
-	return append(resultPredicates, orPred)
+	return append(resultPredicates, predicate.Or(orPreds...))
 }
 
 // HasPurpose filters the incoming Controlplanes  for the given spec.purpose
@@ -244,7 +196,7 @@ func HasPurpose(purpose extensionsv1alpha1.Purpose) predicate.Predicate {
 
 // ClusterShootProviderType is a predicate for the provider type of the shoot in the cluster resource.
 func ClusterShootProviderType(decoder runtime.Decoder, providerType string) predicate.Predicate {
-	f := func(obj runtime.Object) bool {
+	f := func(obj client.Object) bool {
 		if obj == nil {
 			return false
 		}
@@ -280,7 +232,7 @@ func ClusterShootProviderType(decoder runtime.Decoder, providerType string) pred
 
 // GardenCoreProviderType is a predicate for the provider type of a `gardencore.Object` implementation.
 func GardenCoreProviderType(providerType string) predicate.Predicate {
-	f := func(obj runtime.Object) bool {
+	f := func(obj client.Object) bool {
 		if obj == nil {
 			return false
 		}
@@ -309,9 +261,9 @@ func GardenCoreProviderType(providerType string) predicate.Predicate {
 	}
 }
 
-// ClusterShootKubernetesVersionAtLeast is a predicate for the kubernetes version of the shoot in the cluster resource.
-func ClusterShootKubernetesVersionAtLeast(decoder runtime.Decoder, kubernetesVersion string) predicate.Predicate {
-	f := func(obj runtime.Object) bool {
+// ClusterShootKubernetesVersionForCSIMigrationAtLeast is a predicate for the kubernetes version of the shoot in the cluster resource.
+func ClusterShootKubernetesVersionForCSIMigrationAtLeast(decoder runtime.Decoder, kubernetesVersion string) predicate.Predicate {
+	f := func(obj client.Object) bool {
 		if obj == nil {
 			return false
 		}
@@ -326,7 +278,12 @@ func ClusterShootKubernetesVersionAtLeast(decoder runtime.Decoder, kubernetesVer
 			return false
 		}
 
-		constraint, err := version.CompareVersions(shoot.Spec.Kubernetes.Version, ">=", kubernetesVersion)
+		kubernetesVersionForCSIMigration := kubernetesVersion
+		if overwrite, ok := shoot.Annotations[extensionsv1alpha1.ShootAlphaCSIMigrationKubernetesVersion]; ok {
+			kubernetesVersionForCSIMigration = overwrite
+		}
+
+		constraint, err := version.CompareVersions(shoot.Spec.Kubernetes.Version, ">=", kubernetesVersionForCSIMigration)
 		if err != nil {
 			return false
 		}

@@ -15,11 +15,8 @@
 package v1alpha1
 
 import (
-	"time"
-
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
@@ -30,6 +27,10 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 
 // SetDefaults_SchedulerConfiguration sets defaults for the configuration of the Gardener scheduler.
 func SetDefaults_SchedulerConfiguration(obj *SchedulerConfiguration) {
+	if obj.LogLevel == "" {
+		obj.LogLevel = "info"
+	}
+
 	if len(obj.Server.HTTP.BindAddress) == 0 {
 		obj.Server.HTTP.BindAddress = "0.0.0.0"
 	}
@@ -40,19 +41,13 @@ func SetDefaults_SchedulerConfiguration(obj *SchedulerConfiguration) {
 	if obj.Schedulers.BackupBucket == nil {
 		obj.Schedulers.BackupBucket = &BackupBucketSchedulerConfiguration{
 			ConcurrentSyncs: 2,
-			RetrySyncPeriod: metav1.Duration{
-				Duration: 15 * time.Second,
-			},
 		}
 	}
 
 	if obj.Schedulers.Shoot == nil {
 		obj.Schedulers.Shoot = &ShootSchedulerConfiguration{
 			ConcurrentSyncs: 5,
-			RetrySyncPeriod: metav1.Duration{
-				Duration: 15 * time.Second,
-			},
-			Strategy: Default,
+			Strategy:        Default,
 		}
 	}
 	if len(obj.Schedulers.Shoot.Strategy) == 0 {
@@ -62,19 +57,10 @@ func SetDefaults_SchedulerConfiguration(obj *SchedulerConfiguration) {
 	if obj.Schedulers.Shoot.ConcurrentSyncs == 0 {
 		obj.Schedulers.Shoot.ConcurrentSyncs = 5
 	}
-
 }
 
-// SetDefaults_ClientConnection sets defaults for the client connection.
-func SetDefaults_ClientConnection(obj *componentbaseconfigv1alpha1.ClientConnectionConfiguration) {
-	//componentbaseconfigv1alpha1.RecommendedDefaultClientConnectionConfiguration(obj)
-	// https://github.com/kubernetes/client-go/issues/76#issuecomment-396170694
-	if len(obj.AcceptContentTypes) == 0 {
-		obj.AcceptContentTypes = "application/json"
-	}
-	if len(obj.ContentType) == 0 {
-		obj.ContentType = "application/json"
-	}
+// SetDefaults_ClientConnectionConfiguration sets defaults for the garden client connection.
+func SetDefaults_ClientConnectionConfiguration(obj *componentbaseconfigv1alpha1.ClientConnectionConfiguration) {
 	if obj.QPS == 0.0 {
 		obj.QPS = 50.0
 	}
@@ -85,9 +71,11 @@ func SetDefaults_ClientConnection(obj *componentbaseconfigv1alpha1.ClientConnect
 
 // SetDefaults_LeaderElectionConfiguration sets defaults for the leader election of the Gardener controller manager.
 func SetDefaults_LeaderElectionConfiguration(obj *LeaderElectionConfiguration) {
-	componentbaseconfigv1alpha1.RecommendedDefaultLeaderElectionConfiguration(&obj.LeaderElectionConfiguration)
+	if obj.ResourceLock == "" {
+		obj.ResourceLock = resourcelock.LeasesResourceLock
+	}
 
-	obj.ResourceLock = resourcelock.ConfigMapsResourceLock
+	componentbaseconfigv1alpha1.RecommendedDefaultLeaderElectionConfiguration(&obj.LeaderElectionConfiguration)
 
 	if len(obj.LockObjectNamespace) == 0 {
 		obj.LockObjectNamespace = SchedulerDefaultLockObjectNamespace

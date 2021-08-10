@@ -67,7 +67,7 @@ func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managed
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	if err := utils.WaitUntilManagedResourceDeleted(timeoutCtx, a.client, namespace, managedResourceName); err != nil {
+	if err := utils.WaitUntilDeleted(timeoutCtx, a.client, namespace, managedResourceName); err != nil {
 		return err
 	}
 	return nil

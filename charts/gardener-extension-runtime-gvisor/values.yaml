@@ -9,6 +9,9 @@ image:
 
 resources: {}
 
+leaderElection:
+  resourceLock: configmapsleases
+
 controllers:
   concurrentSyncs: 5
   ignoreOperationAnnotation: false

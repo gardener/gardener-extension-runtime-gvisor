@@ -26,6 +26,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -35,6 +36,11 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	var (
 		restOpts = &controllercmd.RESTOptions{}
 		mgrOpts  = &controllercmd.ManagerOptions{
+			// TODO: migrate default to `leases` in one of the next releases
+			// `configmapsleases` has been default since v0.2
+			// maybe consider changing the default in v0.3?
+			LeaderElectionResourceLock: resourcelock.ConfigMapsLeasesResourceLock,
+
 			LeaderElection:          true,
 			LeaderElectionID:        controllercmd.LeaderElectionNameID(gvisor.Name),
 			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
@@ -88,7 +94,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Could not add health check controller to manager")
 			}
 
-			if err := mgr.Start(ctx.Done()); err != nil {
+			if err := mgr.Start(ctx); err != nil {
 				controllercmd.LogErrAndExit(err, "Error running manager")
 			}
 		},

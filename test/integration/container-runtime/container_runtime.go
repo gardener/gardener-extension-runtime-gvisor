@@ -32,6 +32,7 @@ import (
 )
 
 const gVisorContainerRuntimeName = "gvisor"
+
 var gVisorTimeout = 30 * time.Minute
 
 var _ = ginkgo.Describe("gVisor tests", func() {
@@ -76,7 +77,7 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		rootPodExecutor := framework.NewRootPodExecutor(f.Logger, f.ShootClient, &nodeList.Items[0].Name, "kube-system")
 
 		// gVisor requires containerd, so check that first
-		containerdServiceCommand := fmt.Sprintf("systemctl is-active %s", "containerd")
+		containerdServiceCommand := fmt.Sprintf("systemctl is-active %s", extensionsv1alpha1.CRINameContainerD)
 		executeCommand(ctx, rootPodExecutor, containerdServiceCommand, "active")
 
 		// check that the binaries are available
@@ -122,7 +123,6 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		addGVisorToWorker(ctx, f, testWorker.Name)
 	}, gVisorTimeout)
 
-
 })
 
 func getGVisorNodes(ctx context.Context, f *framework.ShootFramework, worker *gardencorev1beta1.Worker) *corev1.NodeList {
@@ -152,7 +152,7 @@ func configureWorkerForTesting(worker *gardencorev1beta1.Worker, useGVisor bool)
 	worker.Maximum = 1
 	worker.Minimum = 1
 	worker.CRI = &gardencorev1beta1.CRI{
-		Name: extensionsv1alpha1.CRINameContainerD,
+		Name: gardencorev1beta1.CRINameContainerD,
 	}
 
 	if useGVisor {
@@ -224,7 +224,7 @@ func deployGVisorPod(ctx context.Context, c client.Client) (*corev1.Pod, error) 
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "gvisor",
-			Namespace: "default",
+			Namespace:    "default",
 		},
 		Spec: corev1.PodSpec{
 			RuntimeClassName: &gVisorRuntimeClass,

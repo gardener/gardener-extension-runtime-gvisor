@@ -17,21 +17,31 @@ package kubernetes
 import (
 	"context"
 
-	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	dnsscheme "github.com/gardener/external-dns-management/pkg/client/dns/clientset/versioned/scheme"
-	resourcesscheme "github.com/gardener/gardener-resource-manager/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	gardencoreclientset "github.com/gardener/gardener/pkg/client/core/clientset/versioned"
 	gardencorescheme "github.com/gardener/gardener/pkg/client/core/clientset/versioned/scheme"
 	gardenextensionsscheme "github.com/gardener/gardener/pkg/client/extensions/clientset/versioned/scheme"
+	gardenoperationsclientset "github.com/gardener/gardener/pkg/client/operations/clientset/versioned"
+	gardenoperationsscheme "github.com/gardener/gardener/pkg/client/operations/clientset/versioned/scheme"
+	gardenseedmanagementclientset "github.com/gardener/gardener/pkg/client/seedmanagement/clientset/versioned"
+	gardenseedmanagementscheme "github.com/gardener/gardener/pkg/client/seedmanagement/clientset/versioned/scheme"
+	gardensettingsscheme "github.com/gardener/gardener/pkg/client/settings/clientset/versioned/scheme"
+
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
+	resourcesscheme "github.com/gardener/gardener-resource-manager/api/resources/v1alpha1"
 	hvpav1alpha1 "github.com/gardener/hvpa-controller/api/v1alpha1"
+	istionetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/version"
 	autoscalingscheme "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1beta2"
 	kubernetesclientset "k8s.io/client-go/kubernetes"
 	corescheme "k8s.io/client-go/kubernetes/scheme"
@@ -62,23 +72,49 @@ var (
 		client.PropagationPolicy(metav1.DeletePropagationBackground),
 		client.GracePeriodSeconds(0),
 	}
+
+	// SeedSerializer is a YAML serializer using the Seed scheme.
+	SeedSerializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, SeedScheme, SeedScheme, json.SerializerOptions{Yaml: true, Pretty: false, Strict: false})
+	// SeedCodec is a codec factory using the Seed scheme.
+	SeedCodec = serializer.NewCodecFactory(SeedScheme)
+
+	// ShootSerializer is a YAML serializer using the Shoot scheme.
+	ShootSerializer = json.NewSerializerWithOptions(json.DefaultMetaFactory, ShootScheme, ShootScheme, json.SerializerOptions{Yaml: true, Pretty: false, Strict: false})
+	// ShootCodec is a codec factory using the Shoot scheme.
+	ShootCodec = serializer.NewCodecFactory(ShootScheme)
 )
+
+// DefaultGetOptions are the default options for GET requests.
+func DefaultGetOptions() metav1.GetOptions { return metav1.GetOptions{} }
+
+// DefaultCreateOptions are the default options for CREATE requests.
+func DefaultCreateOptions() metav1.CreateOptions { return metav1.CreateOptions{} }
+
+// DefaultUpdateOptions are the default options for UPDATE requests.
+func DefaultUpdateOptions() metav1.UpdateOptions { return metav1.UpdateOptions{} }
 
 func init() {
 	gardenSchemeBuilder := runtime.NewSchemeBuilder(
 		corescheme.AddToScheme,
 		gardencorescheme.AddToScheme,
+		gardenseedmanagementscheme.AddToScheme,
+		gardensettingsscheme.AddToScheme,
+		gardenoperationsscheme.AddToScheme,
+		apiregistrationscheme.AddToScheme,
 	)
 	utilruntime.Must(gardenSchemeBuilder.AddToScheme(GardenScheme))
 
 	seedSchemeBuilder := runtime.NewSchemeBuilder(
 		corescheme.AddToScheme,
-		dnsscheme.AddToScheme,
+		dnsv1alpha1.AddToScheme,
 		gardenextensionsscheme.AddToScheme,
 		resourcesscheme.AddToScheme,
+		autoscalingscheme.AddToScheme,
 		hvpav1alpha1.AddToScheme,
 		druidv1alpha1.AddToScheme,
 		apiextensionsscheme.AddToScheme,
+		istionetworkingv1beta1.AddToScheme,
+		istionetworkingv1alpha3.AddToScheme,
 	)
 	utilruntime.Must(seedSchemeBuilder.AddToScheme(SeedScheme))
 
@@ -112,15 +148,18 @@ type Applier interface {
 // of several Kubernetes versions.
 type Interface interface {
 	RESTConfig() *rest.Config
-	RESTMapper() meta.RESTMapper
 	RESTClient() rest.Interface
 
 	// Client returns the ClientSet's controller-runtime client. This client should be used by default, as it carries
 	// a cache, which uses SharedIndexInformers to keep up-to-date.
 	Client() client.Client
-	// DirectClient returns a controller-runtime client, which can be used to talk to the API server directly
-	// (without using a cache).
-	DirectClient() client.Client
+	// APIReader returns a client.Reader that directly reads from the API server.
+	// Wherever possible, try to avoid reading directly from the API server and instead rely on the cache. Some ideas:
+	// If you want to avoid conflicts, try using patch requests that don't require optimistic locking instead of reading
+	// from the APIReader. If you need to make sure, that you're not reading stale data (e.g. a previous update is
+	// observed), use some mechanism that can detect/tolerate stale reads (e.g. add a timestamp annotation during the
+	// write operation and wait until you see it in the cache).
+	APIReader() client.Reader
 	// Cache returns the ClientSet's controller-runtime cache. It can be used to get Informers for arbitrary objects.
 	Cache() cache.Cache
 
@@ -133,6 +172,8 @@ type Interface interface {
 
 	Kubernetes() kubernetesclientset.Interface
 	GardenCore() gardencoreclientset.Interface
+	GardenSeedManagement() gardenseedmanagementclientset.Interface
+	GardenOperations() gardenoperationsclientset.Interface
 	APIExtension() apiextensionsclientset.Interface
 	APIRegistration() apiregistrationclientset.Interface
 
@@ -142,10 +183,14 @@ type Interface interface {
 
 	// Version returns the server version of the targeted Kubernetes cluster.
 	Version() string
+	// DiscoverVersion tries to retrieve the server version of the targeted Kubernetes cluster and updates the
+	// ClientSet's saved version accordingly. Use Version if you only want to retrieve the kubernetes version instead
+	// of refreshing the ClientSet's saved version.
+	DiscoverVersion() (*version.Info, error)
 
 	// Start starts the cache of the ClientSet's controller-runtime client and returns immediately.
 	// It must be called first before using the client to retrieve objects from the API server.
-	Start(stopCh <-chan struct{})
+	Start(ctx context.Context)
 	// WaitForCacheSync waits for the cache of the ClientSet's controller-runtime client to be synced.
-	WaitForCacheSync(stopCh <-chan struct{}) bool
+	WaitForCacheSync(ctx context.Context) bool
 }

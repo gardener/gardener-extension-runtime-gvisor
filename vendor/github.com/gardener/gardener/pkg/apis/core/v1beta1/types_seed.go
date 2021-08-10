@@ -48,6 +48,16 @@ type SeedList struct {
 	Items []Seed `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// SeedTemplate is a template for creating a Seed object.
+type SeedTemplate struct {
+	// Standard object metadata.
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// Specification of the desired behavior of the Seed.
+	// +optional
+	Spec SeedSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+}
+
 // SeedSpec is the specification of a Seed.
 type SeedSpec struct {
 	// Backup holds the object store configuration for the backups of shoot (currently only etcd).
@@ -75,6 +85,9 @@ type SeedSpec struct {
 	// Settings contains certain settings for this seed cluster.
 	// +optional
 	Settings *SeedSettings `json:"settings,omitempty" protobuf:"bytes,8,opt,name=settings"`
+	// Ingress configures Ingress specific settings of the Seed cluster.
+	// +optional
+	Ingress *Ingress `json:"ingress,omitempty" protobuf:"bytes,9,opt,name=ingress"`
 }
 
 // SeedStatus is the status of a Seed.
@@ -94,6 +107,16 @@ type SeedStatus struct {
 	// Seed's generation, which is updated on mutation by the API Server.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,4,opt,name=observedGeneration"`
+	// ClusterIdentity is the identity of the Seed cluster
+	// +optional
+	ClusterIdentity *string `json:"clusterIdentity,omitempty" protobuf:"bytes,5,opt,name=clusterIdentity"`
+	// Capacity represents the total resources of a seed.
+	// +optional
+	Capacity corev1.ResourceList `json:"capacity,omitempty" protobuf:"bytes,6,rep,name=capacity"`
+	// Allocatable represents the resources of a seed that are available for scheduling.
+	// Defaults to Capacity.
+	// +optional
+	Allocatable corev1.ResourceList `json:"allocatable,omitempty" protobuf:"bytes,7,rep,name=allocatable"`
 }
 
 // SeedBackup contains the object store configuration for backups for shoot (currently only etcd).
@@ -115,8 +138,45 @@ type SeedBackup struct {
 // SeedDNS contains DNS-relevant information about this seed cluster.
 type SeedDNS struct {
 	// IngressDomain is the domain of the Seed cluster pointing to the ingress controller endpoint. It will be used
-	// to construct ingress URLs for system applications running in Shoot clusters.
-	IngressDomain string `json:"ingressDomain" protobuf:"bytes,1,opt,name=ingressDomain"`
+	// to construct ingress URLs for system applications running in Shoot clusters. Once set this field is immutable.
+	// This will be removed in the next API version and replaced by spec.ingress.domain.
+	// +optional
+	IngressDomain *string `json:"ingressDomain,omitempty" protobuf:"bytes,1,opt,name=ingressDomain"`
+	// Provider configures a DNSProvider
+	// +optional
+	Provider *SeedDNSProvider `json:"provider,omitempty" protobuf:"bytes,2,opt,name=provider"`
+}
+
+// SeedDNSProvider configures a DNSProvider for Seeds
+type SeedDNSProvider struct {
+	// Type describes the type of the dns-provider, for example `aws-route53`
+	Type string `json:"type" protobuf:"bytes,1,opt,name=type"`
+	// SecretRef is a reference to a Secret object containing cloud provider credentials used for registering external domains.
+	SecretRef corev1.SecretReference `json:"secretRef" protobuf:"bytes,2,opt,name=secretRef"`
+	// Domains contains information about which domains shall be included/excluded for this provider.
+	// +optional
+	Domains *DNSIncludeExclude `json:"domains,omitempty" protobuf:"bytes,3,opt,name=domains"`
+	// Zones contains information about which hosted zones shall be included/excluded for this provider.
+	// +optional
+	Zones *DNSIncludeExclude `json:"zones,omitempty" protobuf:"bytes,4,opt,name=zones"`
+}
+
+// Ingress configures the Ingress specific settings of the Seed cluster
+type Ingress struct {
+	// Domain specifies the IngressDomain of the Seed cluster pointing to the ingress controller endpoint. It will be used
+	// to construct ingress URLs for system applications running in Shoot clusters. Once set this field is immutable.
+	Domain string `json:"domain" protobuf:"bytes,1,opt,name=domain"`
+	// Controller configures a Gardener managed Ingress Controller listening on the ingressDomain
+	Controller IngressController `json:"controller" protobuf:"bytes,2,opt,name=controller"`
+}
+
+// IngressController enables a Gardener managed Ingress Controller listening on the ingressDomain
+type IngressController struct {
+	// Kind defines which kind of IngressController to use, for example `nginx`
+	Kind string `json:"kind" protobuf:"bytes,1,opt,name=kind"`
+	// ProviderConfig specifies infrastructure specific configuration for the ingressController
+	// +optional
+	ProviderConfig *runtime.RawExtension `json:"providerConfig,omitempty" protobuf:"bytes,2,opt,name=providerConfig"`
 }
 
 // SeedNetworks contains CIDRs for the pod, service and node networks of a Kubernetes cluster.
@@ -169,8 +229,7 @@ type SeedSettings struct {
 	// ShootDNS controls the shoot DNS settings for the seed.
 	// +optional
 	ShootDNS *SeedSettingShootDNS `json:"shootDNS,omitempty" protobuf:"bytes,3,opt,name=shootDNS"`
-	// LoadBalancerServices controls certain settings for services of type load balancer that are created in the
-	// seed.
+	// LoadBalancerServices controls certain settings for services of type load balancer that are created in the seed.
 	// +optional
 	LoadBalancerServices *SeedSettingLoadBalancerServices `json:"loadBalancerServices,omitempty" protobuf:"bytes,4,opt,name=loadBalancerServices"`
 	// VerticalPodAutoscaler controls certain settings for the vertical pod autoscaler components deployed in the seed.
@@ -178,9 +237,7 @@ type SeedSettings struct {
 	VerticalPodAutoscaler *SeedSettingVerticalPodAutoscaler `json:"verticalPodAutoscaler,omitempty" protobuf:"bytes,5,opt,name=verticalPodAutoscaler"`
 }
 
-// SeedSettingExcessCapacityReservation controls the excess capacity reservation for shoot control planes in the
-// seed. When enabled then this is done via PodPriority and requires the Seed cluster to have Kubernetes version 1.11
-// or the PodPriority feature gate as well as the scheduling.k8s.io/v1alpha1 API group enabled.
+// SeedSettingExcessCapacityReservation controls the excess capacity reservation for shoot control planes in the seed.
 type SeedSettingExcessCapacityReservation struct {
 	// Enabled controls whether the excess capacity reservation should be enabled.
 	Enabled bool `json:"enabled" protobuf:"bytes,1,opt,name=enabled"`
@@ -227,22 +284,7 @@ type SeedTaint struct {
 	Value *string `json:"value,omitempty" protobuf:"bytes,2,opt,name=value"`
 }
 
-// TODO: Remove these taints in the next core.gardener.cloud API version in favor of the .spec.settings field.
 const (
-	// DeprecatedSeedTaintDisableCapacityReservation is a constant for a taint key on a seed that marks it for disabling
-	// excess capacity reservation. This can be useful for seed clusters which only host shooted seeds to reduce
-	// costs.
-	// deprecated
-	DeprecatedSeedTaintDisableCapacityReservation = "seed.gardener.cloud/disable-capacity-reservation"
-	// DeprecatedSeedTaintDisableDNS is a constant for a taint key on a seed that marks it for disabling DNS. All shoots
-	// using this seed won't get any DNS providers, DNS records, and no DNS extension controller is required to
-	// be installed here. This is useful for environment where DNS is not required.
-	// deprecated
-	DeprecatedSeedTaintDisableDNS = "seed.gardener.cloud/disable-dns"
-	// DeprecatedSeedTaintInvisible is a constant for a taint key on a seed that marks it as invisible. Invisible seeds
-	// are not considered by the gardener-scheduler.
-	// deprecated
-	DeprecatedSeedTaintInvisible = "seed.gardener.cloud/invisible"
 	// SeedTaintProtected is a constant for a taint key on a seed that marks it as protected. Protected seeds
 	// may only be used by shoots in the `garden` namespace.
 	SeedTaintProtected = "seed.gardener.cloud/protected"
@@ -269,6 +311,8 @@ type SeedVolumeProvider struct {
 }
 
 const (
+	// SeedBackupBucketsReady is a constant for a condition type indicating that associated BackupBuckets are ready.
+	SeedBackupBucketsReady ConditionType = "BackupBucketsReady"
 	// SeedBootstrapped is a constant for a condition type indicating that the seed cluster has been
 	// bootstrapped.
 	SeedBootstrapped ConditionType = "Bootstrapped"
@@ -276,4 +320,10 @@ const (
 	SeedExtensionsReady ConditionType = "ExtensionsReady"
 	// SeedGardenletReady is a constant for a condition type indicating that the Gardenlet is ready.
 	SeedGardenletReady ConditionType = "GardenletReady"
+)
+
+// Resource constants for Gardener object types
+const (
+	// ResourceShoots is a resource constant for the number of shoots.
+	ResourceShoots corev1.ResourceName = "shoots"
 )

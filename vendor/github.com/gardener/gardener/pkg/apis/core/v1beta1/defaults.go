@@ -16,12 +16,16 @@ package v1beta1
 
 import (
 	"math"
+	"time"
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils"
 	versionutils "github.com/gardener/gardener/pkg/utils/version"
+
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/pointer"
@@ -101,33 +105,15 @@ func SetDefaults_Seed(obj *Seed) {
 	}
 
 	if obj.Spec.Settings.ExcessCapacityReservation == nil {
-		enabled := true
-		for _, taint := range obj.Spec.Taints {
-			if taint.Key == DeprecatedSeedTaintDisableCapacityReservation {
-				enabled = false
-			}
-		}
-		obj.Spec.Settings.ExcessCapacityReservation = &SeedSettingExcessCapacityReservation{Enabled: enabled}
+		obj.Spec.Settings.ExcessCapacityReservation = &SeedSettingExcessCapacityReservation{Enabled: true}
 	}
 
 	if obj.Spec.Settings.Scheduling == nil {
-		visible := true
-		for _, taint := range obj.Spec.Taints {
-			if taint.Key == DeprecatedSeedTaintInvisible {
-				visible = false
-			}
-		}
-		obj.Spec.Settings.Scheduling = &SeedSettingScheduling{Visible: visible}
+		obj.Spec.Settings.Scheduling = &SeedSettingScheduling{Visible: true}
 	}
 
 	if obj.Spec.Settings.ShootDNS == nil {
-		enabled := true
-		for _, taint := range obj.Spec.Taints {
-			if taint.Key == DeprecatedSeedTaintDisableDNS {
-				enabled = false
-			}
-		}
-		obj.Spec.Settings.ShootDNS = &SeedSettingShootDNS{Enabled: enabled}
+		obj.Spec.Settings.ShootDNS = &SeedSettingShootDNS{Enabled: true}
 	}
 
 	if obj.Spec.Settings.VerticalPodAutoscaler == nil {
@@ -138,14 +124,12 @@ func SetDefaults_Seed(obj *Seed) {
 // SetDefaults_Shoot sets default values for Shoot objects.
 func SetDefaults_Shoot(obj *Shoot) {
 	k8sVersionLessThan116, _ := versionutils.CompareVersions(obj.Spec.Kubernetes.Version, "<", "1.16")
+	k8sVersionGreaterOrEqualThan122, _ := versionutils.CompareVersions(obj.Spec.Kubernetes.Version, ">=", "1.22")
 	// Error is ignored here because we cannot do anything meaningful with it.
-	// k8sVersionLessThan116 will default to `false`.
-
-	trueVar := true
-	falseVar := false
+	// k8sVersionLessThan116 and k8sVersionGreaterOrEqualThan122 will default to `false`.
 
 	if obj.Spec.Kubernetes.AllowPrivilegedContainers == nil {
-		obj.Spec.Kubernetes.AllowPrivilegedContainers = &trueVar
+		obj.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Bool(true)
 	}
 
 	if obj.Spec.Kubernetes.KubeAPIServer == nil {
@@ -153,10 +137,19 @@ func SetDefaults_Shoot(obj *Shoot) {
 	}
 	if obj.Spec.Kubernetes.KubeAPIServer.EnableBasicAuthentication == nil {
 		if k8sVersionLessThan116 {
-			obj.Spec.Kubernetes.KubeAPIServer.EnableBasicAuthentication = &trueVar
+			obj.Spec.Kubernetes.KubeAPIServer.EnableBasicAuthentication = pointer.Bool(true)
 		} else {
-			obj.Spec.Kubernetes.KubeAPIServer.EnableBasicAuthentication = &falseVar
+			obj.Spec.Kubernetes.KubeAPIServer.EnableBasicAuthentication = pointer.Bool(false)
 		}
+	}
+	if obj.Spec.Kubernetes.KubeAPIServer.Requests == nil {
+		obj.Spec.Kubernetes.KubeAPIServer.Requests = &KubeAPIServerRequests{}
+	}
+	if obj.Spec.Kubernetes.KubeAPIServer.Requests.MaxNonMutatingInflight == nil {
+		obj.Spec.Kubernetes.KubeAPIServer.Requests.MaxNonMutatingInflight = pointer.Int32(400)
+	}
+	if obj.Spec.Kubernetes.KubeAPIServer.Requests.MaxMutatingInflight == nil {
+		obj.Spec.Kubernetes.KubeAPIServer.Requests.MaxMutatingInflight = pointer.Int32(200)
 	}
 
 	if obj.Spec.Kubernetes.KubeControllerManager == nil {
@@ -165,6 +158,12 @@ func SetDefaults_Shoot(obj *Shoot) {
 	if obj.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize == nil {
 		obj.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = calculateDefaultNodeCIDRMaskSize(obj.Spec.Kubernetes.Kubelet, obj.Spec.Provider.Workers)
 	}
+	if obj.Spec.Kubernetes.KubeControllerManager.PodEvictionTimeout == nil {
+		obj.Spec.Kubernetes.KubeControllerManager.PodEvictionTimeout = &metav1.Duration{Duration: 2 * time.Minute}
+	}
+	if obj.Spec.Kubernetes.KubeControllerManager.NodeMonitorGracePeriod == nil {
+		obj.Spec.Kubernetes.KubeControllerManager.NodeMonitorGracePeriod = &metav1.Duration{Duration: 2 * time.Minute}
+	}
 
 	if obj.Spec.Kubernetes.KubeProxy == nil {
 		obj.Spec.Kubernetes.KubeProxy = &KubeProxyConfig{}
@@ -172,6 +171,9 @@ func SetDefaults_Shoot(obj *Shoot) {
 	if obj.Spec.Kubernetes.KubeProxy.Mode == nil {
 		defaultProxyMode := ProxyModeIPTables
 		obj.Spec.Kubernetes.KubeProxy.Mode = &defaultProxyMode
+	}
+	if obj.Spec.Kubernetes.KubeProxy.Enabled == nil {
+		obj.Spec.Kubernetes.KubeProxy.Enabled = pointer.Bool(true)
 	}
 
 	if obj.Spec.Addons == nil {
@@ -206,11 +208,51 @@ func SetDefaults_Shoot(obj *Shoot) {
 		obj.Spec.Kubernetes.Kubelet = &KubeletConfig{}
 	}
 	if obj.Spec.Kubernetes.Kubelet.FailSwapOn == nil {
-		obj.Spec.Kubernetes.Kubelet.FailSwapOn = &trueVar
+		obj.Spec.Kubernetes.Kubelet.FailSwapOn = pointer.Bool(true)
+	}
+	if obj.Spec.Kubernetes.Kubelet.ImageGCHighThresholdPercent == nil {
+		obj.Spec.Kubernetes.Kubelet.ImageGCHighThresholdPercent = pointer.Int32(50)
+	}
+	if obj.Spec.Kubernetes.Kubelet.ImageGCLowThresholdPercent == nil {
+		obj.Spec.Kubernetes.Kubelet.ImageGCLowThresholdPercent = pointer.Int32(40)
+	}
+
+	var (
+		kubeReservedMemory = resource.MustParse("1Gi")
+		kubeReservedCPU    = resource.MustParse("80m")
+		kubeReservedPID    = resource.MustParse("20k")
+	)
+
+	if obj.Spec.Kubernetes.Kubelet.KubeReserved == nil {
+		obj.Spec.Kubernetes.Kubelet.KubeReserved = &KubeletConfigReserved{Memory: &kubeReservedMemory, CPU: &kubeReservedCPU}
+		obj.Spec.Kubernetes.Kubelet.KubeReserved.PID = &kubeReservedPID
+	} else {
+		if obj.Spec.Kubernetes.Kubelet.KubeReserved.Memory == nil {
+			obj.Spec.Kubernetes.Kubelet.KubeReserved.Memory = &kubeReservedMemory
+		}
+		if obj.Spec.Kubernetes.Kubelet.KubeReserved.CPU == nil {
+			obj.Spec.Kubernetes.Kubelet.KubeReserved.CPU = &kubeReservedCPU
+		}
+		if obj.Spec.Kubernetes.Kubelet.KubeReserved.PID == nil {
+			obj.Spec.Kubernetes.Kubelet.KubeReserved.PID = &kubeReservedPID
+		}
 	}
 
 	if obj.Spec.Maintenance == nil {
 		obj.Spec.Maintenance = &Maintenance{}
+	}
+
+	if obj.Spec.Kubernetes.KubeAPIServer.EnableAnonymousAuthentication == nil {
+		obj.Spec.Kubernetes.KubeAPIServer.EnableAnonymousAuthentication = pointer.Bool(false)
+	}
+
+	if k8sVersionGreaterOrEqualThan122 {
+		for i := range obj.Spec.Provider.Workers {
+			if obj.Spec.Provider.Workers[i].CRI != nil {
+				continue
+			}
+			obj.Spec.Provider.Workers[i].CRI = &CRI{Name: CRINameContainerD}
+		}
 	}
 }
 
@@ -290,12 +332,12 @@ func SetDefaults_NginxIngress(obj *NginxIngress) {
 // SetDefaults_ControllerResource sets default values for ControllerResource objects.
 func SetDefaults_ControllerResource(obj *ControllerResource) {
 	if obj.Primary == nil {
-		obj.Primary = pointer.BoolPtr(true)
+		obj.Primary = pointer.Bool(true)
 	}
 }
 
-// SetDefaults_ControllerDeployment sets default values for ControllerDeployment objects.
-func SetDefaults_ControllerDeployment(obj *ControllerDeployment) {
+// SetDefaults_ControllerRegistrationDeployment sets default values for ControllerRegistrationDeployment objects.
+func SetDefaults_ControllerRegistrationDeployment(obj *ControllerRegistrationDeployment) {
 	p := ControllerDeploymentPolicyOnDemand
 	if obj.Policy == nil {
 		obj.Policy = &p
