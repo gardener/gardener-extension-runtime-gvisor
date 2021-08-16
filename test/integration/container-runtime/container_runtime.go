@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils"
@@ -47,10 +49,16 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		}
 
 		testWorker := shoot.Spec.Provider.Workers[0].DeepCopy()
+		machineImage := testWorker.Machine.Image
 
-		if testWorker.Machine.Image.Name != "ubuntu" {
-			ginkgo.Skip("worker with machine image 'ubuntu' is required")
+		cloudProfile, err := f.GetCloudProfile(ctx)
+		g.Expect(err).ToNot(g.HaveOccurred())
+
+		if !supportsGVisor(cloudProfile.Spec.MachineImages, machineImage) {
+			ginkgo.Skip(fmt.Sprintf("Skipping test as gVisor is not support on OS %q, version: %q, according to cloudprofile %q", machineImage.Name, *machineImage.Version, cloudProfile.GetName()))
 		}
+
+		ginkgo.By(fmt.Sprintf("OS %q, version: %q supports gVisor container runtime according to cloudprofile %q", machineImage.Name, *machineImage.Version, cloudProfile.GetName()))
 
 		testWorker = configureWorkerForTesting(testWorker, true)
 
@@ -63,7 +71,7 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 			removeWorkerPool(ctx, f, workerPoolName)
 		}(ctx, testWorker.Name)
 
-		err := f.UpdateShoot(ctx, func(s *gardencorev1beta1.Shoot) error {
+		err = f.UpdateShoot(ctx, func(s *gardencorev1beta1.Shoot) error {
 			s.Spec.Provider.Workers = shoot.Spec.Provider.Workers
 			return nil
 		})
@@ -252,4 +260,48 @@ func executeCommand(ctx context.Context, rootPodExecutor framework.RootPodExecut
 	framework.ExpectNoError(err)
 	g.Expect(response).ToNot(g.BeNil())
 	g.Expect(string(response)).To(g.Equal(fmt.Sprintf("%s\n", expected)))
+}
+
+// supportsGVisor checks whether the given workerImage supports gVisor as container runtime
+func supportsGVisor(cloudProfileImages []gardencorev1beta1.MachineImage, workerImage *gardencorev1beta1.ShootMachineImage) bool {
+	var (
+		cloudProfileImage *gardencorev1beta1.MachineImage
+		machineVersion    *gardencorev1beta1.MachineImageVersion
+	)
+
+	for _, current := range cloudProfileImages {
+		if current.Name == workerImage.Name {
+			cloudProfileImage = &current
+			break
+		}
+	}
+
+	if cloudProfileImage == nil {
+		return false
+	}
+
+	for _, version := range cloudProfileImage.Versions {
+		if version.Version == *workerImage.Version {
+			machineVersion = &version
+			break
+		}
+	}
+
+	if machineVersion == nil {
+		return false
+	}
+
+	for _, cri := range machineVersion.CRI {
+		if cri.Name != gardencorev1beta1.CRINameContainerD {
+			continue
+		}
+
+		for _, runtime := range cri.ContainerRuntimes {
+			if runtime.Type == gvisor.Type {
+				return true
+			}
+		}
+	}
+
+	return false
 }
