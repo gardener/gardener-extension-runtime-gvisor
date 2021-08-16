@@ -26,7 +26,9 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -75,7 +77,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Error completing options")
 			}
 
-			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
+			completedMgrOpts := mgrOpts.Completed().Options()
+			completedMgrOpts.ClientDisableCacheFor = []client.Object{
+				&corev1.Secret{}, // applied for ManagedResources
+			}
+
+			mgr, err := manager.New(restOpts.Completed().Config, completedMgrOpts)
 			if err != nil {
 				controllercmd.LogErrAndExit(err, "Could not instantiate manager")
 			}
