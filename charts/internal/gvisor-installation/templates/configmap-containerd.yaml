@@ -44,15 +44,20 @@ data:
     FILENAME=/var/host/etc/containerd/config.toml
     if ! grep -q containerd.runtimes.runsc "$FILENAME"; then
       echo "Configuring containerd config file for gVisor."
-      VERSION="$(head -n 1 $FILENAME)"
 
-      if [ "$VERSION" == "version = 2" ]
+      # version 1 is the default version, even though it is deprecated, ref: https://containerd.io/releases/#daemon-configuration
+      # so use version 2 syntax only if it is explicitly enabled in the config file
+      if grep -q '^version.*=.*2$' "$FILENAME"
       then
-        echo "[plugins.\"io.containerd.grpc.v1.cri\".containerd.runtimes.runsc]
-          runtime_type = \"io.containerd.runsc.v1\"" >> /var/host/etc/containerd/config.toml
+        cat <<EOF >> $FILENAME
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+      runtime_type = "io.containerd.runsc.v1"
+    EOF
       else
-        echo "[plugins.cri.containerd.runtimes.runsc]
-          runtime_type = \"io.containerd.runsc.v1\"" >> /var/host/etc/containerd/config.toml
+        cat <<EOF >> $FILENAME
+    [plugins.cri.containerd.runtimes.runsc]
+      runtime_type = "io.containerd.runsc.v1"
+    EOF
       fi
 
       echo "Restarting containerd"
