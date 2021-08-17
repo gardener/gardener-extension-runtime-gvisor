@@ -38,14 +38,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	var (
 		restOpts = &controllercmd.RESTOptions{}
 		mgrOpts  = &controllercmd.ManagerOptions{
-			// TODO: migrate default to `leases` in one of the next releases
-			// `configmapsleases` has been default since v0.2
-			// maybe consider changing the default in v0.3?
-			LeaderElectionResourceLock: resourcelock.ConfigMapsLeasesResourceLock,
-
-			LeaderElection:          true,
-			LeaderElectionID:        controllercmd.LeaderElectionNameID(gvisor.Name),
-			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+			LeaderElection:             true,
+			LeaderElectionID:           controllercmd.LeaderElectionNameID(gvisor.Name),
+			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
 		}
 		// options for the runtime-gvisor controller
 		gvisorCtrlOpts = &controllercmd.ControllerOptions{
