@@ -18,7 +18,7 @@ vpa:
     updateMode: "Auto"
 
 leaderElection:
-  resourceLock: configmapsleases
+  resourceLock: leases
 
 controllers:
   concurrentSyncs: 5
