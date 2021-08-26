@@ -239,7 +239,7 @@ func deployGVisorPod(ctx context.Context, c client.Client) (*corev1.Pod, error) 
 			Containers: []corev1.Container{
 				{
 					Name:  "gvisor-container",
-					Image: "busybox",
+					Image: "eu.gcr.io/gardener-project/3rd/busybox:1.29.2",
 					Command: []string{
 						"sleep",
 						"10000000",
