@@ -78,7 +78,7 @@ check-generate:
 
 .PHONY: check
 check:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
 
 .PHONY: generate

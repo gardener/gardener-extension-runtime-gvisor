@@ -36,6 +36,6 @@ var (
 	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 	// InstallationChartPath path for internal GVisor installation Chart
 	InstallationChartPath = filepath.Join(InternalChartsPath, "gvisor-installation")
-	// InstallationChartPath path for internal GVisor Chart
+	// ChartPath is the path for internal GVisor Chart.
 	ChartPath = filepath.Join(InternalChartsPath, "gvisor")
 )

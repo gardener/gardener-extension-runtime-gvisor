@@ -36,12 +36,12 @@ type actuator struct {
 	decoder runtime.Decoder
 }
 
-const LogID = "runtime-gvisor-actuator"
+const logId = "runtime-gvisor-actuator"
 
 // NewActuator creates a new Actuator that updates the status of the handled ContainerRuntime resources.
 func NewActuator(chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
 	return &actuator{
-		logger:               log.Log.WithName(LogID),
+		logger:               log.Log.WithName(logId),
 		chartRendererFactory: chartRendererFactory,
 	}
 }

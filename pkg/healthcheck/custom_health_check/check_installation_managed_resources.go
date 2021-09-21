@@ -37,7 +37,7 @@ type GVisorInstallationManagedResourcesHealthChecker struct {
 	shootClient client.Client
 }
 
-// CheckManagedResource is a healthCheck function to check ManagedResources
+// CheckGVisorInstallationManagedResources is a healthCheck function to check ManagedResources
 func CheckGVisorInstallationManagedResources() healthcheck.HealthCheck {
 	return &GVisorInstallationManagedResourcesHealthChecker{}
 }

@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GVisorConfigKey is the key for the gVisor configuration.
 const GVisorConfigKey = "config.yaml"
 
 // RenderGVisorInstallationChart renders the gVisor installation chart
