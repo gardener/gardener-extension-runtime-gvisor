@@ -14,5 +14,5 @@
 
 package gvisor
 
-// The container runtime type that this extension reconcile.
+// Type is the container runtime type that this extension reconcile.
 const Type = "gvisor"

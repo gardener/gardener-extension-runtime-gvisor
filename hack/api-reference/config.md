@@ -9,7 +9,9 @@
 <p>Package v1alpha1 contains the GVisor container runtime configuration API resources.</p>
 </p>
 Resource Types:
-<ul></ul>
+<ul><li>
+<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>
+</li></ul>
 <h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration
 </h3>
 <p>
@@ -23,6 +25,23 @@ Resource Types:
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>ControllerConfiguration</code></td>
+</tr>
 <tr>
 <td>
 <code>clientConnection</code></br>

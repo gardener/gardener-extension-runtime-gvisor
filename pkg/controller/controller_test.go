@@ -50,9 +50,10 @@ var _ = Describe("Chart package test", func() {
 
 	Describe("#Actuator", func() {
 		var (
-			ctrl            = gomock.NewController(GinkgoT())
-			crf             = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
-			mockClient      = mockclient.NewMockClient(ctrl)
+			ctrl       = gomock.NewController(GinkgoT())
+			crf        = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
+			mockClient *mockclient.MockClient
+
 			ctx             = context.TODO()
 			chartName       = "chartName"
 			manifestContent = "manifestContent"

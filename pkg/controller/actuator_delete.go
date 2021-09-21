@@ -67,10 +67,8 @@ func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managed
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	if err := utils.WaitUntilDeleted(timeoutCtx, a.client, namespace, managedResourceName); err != nil {
-		return err
-	}
-	return nil
+
+	return utils.WaitUntilDeleted(timeoutCtx, a.client, namespace, managedResourceName)
 }
 
 func isGVisorInstallationRequired(name string, list *extensionsv1alpha1.ContainerRuntimeList) bool {

@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// NewControllerCommand creates a new command that is used to start the Container runtime gvisor controller.
+// NewControllerManagerCommand creates a new command that is used to start the Container runtime gvisor controller.
 func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 	var (

@@ -31,10 +31,14 @@ import (
 )
 
 const (
-	GVisorInstallationSecretName          = "extension-runtime-gvisor-installation"
-	GVisorSecretName                      = "extension-runtime-gvisor"
+	// GVisorInstallationSecretName is the name of the secret ofr the installation.
+	GVisorInstallationSecretName = "extension-runtime-gvisor-installation"
+	// GVisorSecretName is the name of the secret.
+	GVisorSecretName = "extension-runtime-gvisor"
+	// GVisorInstallationManagedResourceName is the name of the managed resource installation.
 	GVisorInstallationManagedResourceName = "extension-runtime-gvisor-installation"
-	GVisorManagedResourceName             = "extension-runtime-gvisor"
+	// GVisorManagedResourceName is the name of the managed resource.
+	GVisorManagedResourceName = "extension-runtime-gvisor"
 )
 
 // Reconcile implements ContainerRuntime.Actuator.
@@ -89,6 +93,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 		Reconcile(ctx)
 }
 
+// GetGVisorInstallationManagedResourceName returns the name of the managed resource.
 func GetGVisorInstallationManagedResourceName(cr *extensionsv1alpha1.ContainerRuntime) string {
 	return fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
 }

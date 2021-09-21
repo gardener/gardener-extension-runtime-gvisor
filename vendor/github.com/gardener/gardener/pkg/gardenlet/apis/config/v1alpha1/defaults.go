@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gardener/gardener/pkg/logger"
+
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 
@@ -95,6 +97,11 @@ func SetDefaults_GardenletConfiguration(obj *GardenletConfiguration) {
 		obj.LogLevel = &v
 	}
 
+	if obj.LogFormat == nil {
+		v := logger.FormatJSON
+		obj.LogFormat = &v
+	}
+
 	if obj.KubernetesLogLevel == nil {
 		v := DefaultKubernetesLogLevel
 		obj.KubernetesLogLevel = &v
@@ -109,6 +116,8 @@ func SetDefaults_GardenletConfiguration(obj *GardenletConfiguration) {
 	if obj.Server.HTTPS.Port == 0 {
 		obj.Server.HTTPS.Port = 2720
 	}
+
+	// TODO: consider enabling profiling by default (like in k8s components)
 
 	if obj.SNI == nil {
 		obj.SNI = &SNI{}

@@ -54,12 +54,18 @@ type GardenletConfiguration struct {
 	// LogLevel is the level/severity for the logs. Must be one of [info,debug,error].
 	// +optional
 	LogLevel *string `json:"logLevel,omitempty"`
+	// LogFormat is the output format for the logs. Must be one of [text,json].
+	// +optional
+	LogFormat *string `json:"logFormat,omitempty"`
 	// KubernetesLogLevel is the log level used for Kubernetes' k8s.io/klog functions.
 	// +optional
 	KubernetesLogLevel *klog.Level `json:"kubernetesLogLevel,omitempty"`
 	// Server defines the configuration of the HTTP server.
 	// +optional
 	Server *ServerConfiguration `json:"server,omitempty"`
+	// Debugging holds configuration for Debugging related features.
+	// +optional
+	Debugging *componentbaseconfigv1alpha1.DebuggingConfiguration `json:"debugging,omitempty"`
 	// FeatureGates is a map of feature names to bools that enable or disable alpha/experimental
 	// features. This field modifies piecemeal the built-in default values from
 	// "github.com/gardener/gardener/pkg/gardenlet/features/features.go".
@@ -494,7 +500,7 @@ type ExposureClassHandler struct {
 	SNI *SNI `json:"sni,omitempty"`
 }
 
-// LoadBalancerService contains configuration which is used to configure the underlying
+// LoadBalancerServiceConfig contains configuration which is used to configure the underlying
 // load balancer to apply the control plane endpoint exposure strategy.
 type LoadBalancerServiceConfig struct {
 	// Annotations is a key value map to annotate the underlying load balancer services.

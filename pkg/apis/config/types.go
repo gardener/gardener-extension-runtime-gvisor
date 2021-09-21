@@ -21,6 +21,7 @@ import (
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ControllerConfiguration defines the configuration for the GVisor runtime extension.
 type ControllerConfiguration struct {
 	metav1.TypeMeta
