@@ -88,6 +88,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			reconcileOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.IgnoreOperationAnnotation)
+			gvisorCtrlOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.Controller)
 
 			if err := gvisorcontroller.AddToManager(mgr); err != nil {
 				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")
