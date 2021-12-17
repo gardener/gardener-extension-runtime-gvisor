@@ -34,21 +34,22 @@ import (
 
 // NewControllerManagerCommand creates a new command that is used to start the Container runtime gvisor controller.
 func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
-
 	var (
-		restOpts = &controllercmd.RESTOptions{}
-		mgrOpts  = &controllercmd.ManagerOptions{
+		generalOpts = &controllercmd.GeneralOptions{}
+		restOpts    = &controllercmd.RESTOptions{}
+		mgrOpts     = &controllercmd.ManagerOptions{
 			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 			LeaderElection:             true,
 			LeaderElectionID:           controllercmd.LeaderElectionNameID(gvisor.Name),
 			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
 		}
+		reconcileOpts = &controllercmd.ReconcilerOptions{
+			IgnoreOperationAnnotation: true,
+		}
+
 		// options for the runtime-gvisor controller
 		gvisorCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
-		}
-		reconcileOpts = &controllercmd.ReconcilerOptions{
-			IgnoreOperationAnnotation: true,
 		}
 
 		// options for the health care controller
@@ -57,6 +58,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		}
 
 		aggOption = controllercmd.NewOptionAggregator(
+			generalOpts,
 			restOpts,
 			mgrOpts,
 			gvisorCtrlOpts,

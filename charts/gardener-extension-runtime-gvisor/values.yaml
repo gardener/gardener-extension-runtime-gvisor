@@ -25,3 +25,6 @@ controllers:
   ignoreOperationAnnotation: false
 
 disableControllers: []
+
+gardener:
+  version: ""
