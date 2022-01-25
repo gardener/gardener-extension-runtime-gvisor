@@ -47,10 +47,11 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	}
 
 	return containerruntime.Add(mgr, containerruntime.AddArgs{
-		Actuator:          NewActuator(extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
-		ControllerOptions: opts.Controller,
-		Predicates:        containerruntime.DefaultPredicates(opts.IgnoreOperationAnnotation),
-		Type:              gvisor.Type,
+		Actuator:                  NewActuator(extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
+		ControllerOptions:         opts.Controller,
+		Predicates:                containerruntime.DefaultPredicates(opts.IgnoreOperationAnnotation),
+		Type:                      gvisor.Type,
+		IgnoreOperationAnnotation: opts.IgnoreOperationAnnotation,
 	})
 }
 
