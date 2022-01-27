@@ -21,10 +21,10 @@ import (
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 
-	resourcemanager "github.com/gardener/gardener-resource-manager/pkg/manager"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	utils "github.com/gardener/gardener/pkg/utils/managedresources"
+	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -51,14 +51,14 @@ func (a *actuator) Delete(ctx context.Context, cr *extensionsv1alpha1.ContainerR
 }
 
 func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managedResourceName, secretName string) error {
-	if err := resourcemanager.
+	if err := builder.
 		NewManagedResource(a.client).
 		WithNamespacedName(namespace, managedResourceName).
 		Delete(ctx); err != nil {
 		return err
 	}
 
-	if err := resourcemanager.
+	if err := builder.
 		NewSecret(a.client).
 		WithNamespacedName(namespace, secretName).
 		Delete(ctx); err != nil {

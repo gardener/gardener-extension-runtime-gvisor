@@ -20,11 +20,11 @@ import (
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 
-	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/api/resources/v1alpha1"
-	"github.com/gardener/gardener-resource-manager/pkg/manager"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +49,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 	}
 
 	// if the managed resource containing the prerequisites is not available yet, create it.
-	mr := &resourcemanagerv1alpha1.ManagedResource{}
+	mr := &resourcesv1alpha1.ManagedResource{}
 	if err := a.client.Get(ctx, kutil.Key(cr.Namespace, GVisorManagedResourceName), mr); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -66,7 +66,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 			return err
 		}
 
-		if err := manager.
+		if err := builder.
 			NewManagedResource(a.client).
 			WithNamespacedName(cr.Namespace, GVisorManagedResourceName).
 			WithSecretRefs(secretRefs).
@@ -86,7 +86,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 		return err
 	}
 
-	return manager.
+	return builder.
 		NewManagedResource(a.client).
 		WithNamespacedName(cr.Namespace, GetGVisorInstallationManagedResourceName(cr)).
 		WithSecretRefs(secretRefs).
@@ -106,8 +106,8 @@ func withLocalObjectRefs(refs ...string) []corev1.LocalObjectReference {
 	return localObjectRefs
 }
 
-func gvisorSecret(cl client.Client, gVisorConfig []byte, namespace, secretName string) (*manager.Secret, []corev1.LocalObjectReference) {
-	return manager.NewSecret(cl).
+func gvisorSecret(cl client.Client, gVisorConfig []byte, namespace, secretName string) (*builder.Secret, []corev1.LocalObjectReference) {
+	return builder.NewSecret(cl).
 		WithKeyValues(map[string][]byte{charts.GVisorConfigKey: gVisorConfig}).
 		WithNamespacedName(namespace, secretName), withLocalObjectRefs(secretName)
 }

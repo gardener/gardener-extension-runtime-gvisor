@@ -20,6 +20,7 @@ spec:
         gardener.cloud/role: container-runtime
     spec:
       serviceAccountName: gvisor
+      automountServiceAccountToken: false
       hostPID: true
       hostIPC: true
       nodeSelector:

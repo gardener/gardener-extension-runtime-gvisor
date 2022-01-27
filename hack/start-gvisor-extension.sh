@@ -71,5 +71,6 @@ else
         -ldflags "$LD_FLAGS" \
         "$DIRECTORY" \
         --ignore-operation-annotation="$IGNORE_OPERATION_ANNOTATION" \
-        --leader-election=false
+        --leader-election=false \
+        --gardener-version="v1.39.0"
 fi

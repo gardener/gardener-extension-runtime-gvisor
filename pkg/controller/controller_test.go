@@ -22,11 +22,11 @@ import (
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 
-	resourcemanagerv1alpha1 "github.com/gardener/gardener-resource-manager/api/resources/v1alpha1"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	mockextensionscontroller "github.com/gardener/gardener/extensions/pkg/controller/mock"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
@@ -116,9 +116,9 @@ var _ = Describe("Chart package test", func() {
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
 			mockClient.EXPECT().Create(ctx, secret).Return(nil)
 			// Validate deployed managed resource "extension-runtime-gvisor"
-			managedResource := &resourcemanagerv1alpha1.ManagedResource{
+			managedResource := &resourcesv1alpha1.ManagedResource{
 				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
-				Spec: resourcemanagerv1alpha1.ManagedResourceSpec{
+				Spec: resourcesv1alpha1.ManagedResourceSpec{
 					SecretRefs: []corev1.LocalObjectReference{
 						{Name: controller.GVisorSecretName},
 					},
@@ -141,9 +141,9 @@ var _ = Describe("Chart package test", func() {
 
 			// Validate deployed managed resource
 			installationMResourceName := fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
-			managedResourceInstallation := &resourcemanagerv1alpha1.ManagedResource{
+			managedResourceInstallation := &resourcesv1alpha1.ManagedResource{
 				ObjectMeta: metav1.ObjectMeta{Name: installationMResourceName, Namespace: namespaceName},
-				Spec: resourcemanagerv1alpha1.ManagedResourceSpec{
+				Spec: resourcesv1alpha1.ManagedResourceSpec{
 					SecretRefs: []corev1.LocalObjectReference{
 						{Name: installationSecretName},
 					},
@@ -185,9 +185,9 @@ var _ = Describe("Chart package test", func() {
 
 			// Validate deployed managed resource
 			installationMResourceName := fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
-			managedResourceInstallation := &resourcemanagerv1alpha1.ManagedResource{
+			managedResourceInstallation := &resourcesv1alpha1.ManagedResource{
 				ObjectMeta: metav1.ObjectMeta{Name: installationMResourceName, Namespace: namespaceName},
-				Spec: resourcemanagerv1alpha1.ManagedResourceSpec{
+				Spec: resourcesv1alpha1.ManagedResourceSpec{
 					SecretRefs: []corev1.LocalObjectReference{
 						{Name: installationSecretName},
 					},
@@ -207,7 +207,7 @@ var _ = Describe("Chart package test", func() {
 			// ---------- Deletion of GVisor Installation -------------------
 
 			// Validate deployed managed resource
-			installationManagedResource := &resourcemanagerv1alpha1.ManagedResource{
+			installationManagedResource := &resourcesv1alpha1.ManagedResource{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), Namespace: namespaceName},
 			}
 			mockClient.EXPECT().Delete(ctx, installationManagedResource).Return(nil)
@@ -243,7 +243,7 @@ var _ = Describe("Chart package test", func() {
 			})
 
 			// Validate deployed managed resource
-			managedResource := &resourcemanagerv1alpha1.ManagedResource{
+			managedResource := &resourcesv1alpha1.ManagedResource{
 				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 			}
 			mockClient.EXPECT().Delete(ctx, managedResource).Return(nil)
@@ -256,11 +256,11 @@ var _ = Describe("Chart package test", func() {
 
 			// wait for managed resource to be deleted
 			managedResourceStillAvailable := func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
-				Expect(obj).To(BeAssignableToTypeOf(&resourcemanagerv1alpha1.ManagedResource{}))
+				Expect(obj).To(BeAssignableToTypeOf(&resourcesv1alpha1.ManagedResource{}))
 				object := client.ObjectKeyFromObject(managedResource)
 				Expect(key).To(Equal(object))
 				now := metav1.Now()
-				obj.(*resourcemanagerv1alpha1.ManagedResource).ObjectMeta.DeletionTimestamp = &now
+				obj.(*resourcesv1alpha1.ManagedResource).ObjectMeta.DeletionTimestamp = &now
 				return nil
 			}
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
@@ -281,7 +281,7 @@ var _ = Describe("Chart package test", func() {
 			// ---------- Deletion of GVisor Installation -------------------
 
 			// Validate deployed managed resource
-			installationManagedResource := &resourcemanagerv1alpha1.ManagedResource{
+			installationManagedResource := &resourcesv1alpha1.ManagedResource{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", controller.GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), Namespace: namespaceName},
 			}
 			mockClient.EXPECT().Delete(ctx, installationManagedResource).Return(nil)
