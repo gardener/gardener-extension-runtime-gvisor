@@ -17,6 +17,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/version"
 	"os"
 
 	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
@@ -105,6 +106,16 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 		},
 	}
+
+	// Add version subcommand
+	cmd.AddCommand(
+		&cobra.Command{
+			Use:   "version",
+			Short: "Print the program version number",
+			Run: func(cmd *cobra.Command, args []string) {
+				fmt.Print(version.Get().GitVersion)
+			},
+		})
 
 	aggOption.AddFlags(cmd.Flags())
 
