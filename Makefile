@@ -21,7 +21,9 @@ IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
-LD_FLAGS                    := $(shell ./vendor/github.com/gardener/gardener/hack/get-build-ld-flags.sh github.com/gardener/"$(EXTENSION_PREFIX)-$(NAME)/pkg" "$(REPO_ROOT)/VERSION")
+LD_FLAGS_GENERATOR          := $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/get-build-ld-flags.sh
+LD_FLAGS                    := $(shell $(LD_FLAGS_GENERATOR) k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))
+
 IGNORE_OPERATION_ANNOTATION := true
 
 ### GVisor version: https://github.com/google/gvisor/releases

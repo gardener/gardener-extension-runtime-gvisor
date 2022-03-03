@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -71,6 +72,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		Use: fmt.Sprintf("%s-controller-manager", gvisor.Name),
 
 		Run: func(cmd *cobra.Command, args []string) {
+			// Act on version flag, if one was specified
+			verflag.PrintAndExitIfRequested()
+
 			if err := aggOption.Complete(); err != nil {
 				controllercmd.LogErrAndExit(err, "Error completing options")
 			}
@@ -106,6 +110,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 
+	verflag.AddFlags(cmd.Flags())
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd

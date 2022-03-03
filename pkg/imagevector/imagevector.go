@@ -15,15 +15,14 @@
 package imagevector
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/version"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/component-base/version"
 )
 
 var imageVector imagevector.ImageVector
@@ -37,9 +36,8 @@ func init() {
 	imageVector, err = imagevector.WithEnvOverride(imageVector)
 	runtime.Must(err)
 
-	image, err := imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
+	_, err = imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
 	runtime.Must(err)
-	fmt.Printf("Image %q - using image name: %q \n", gvisor.RuntimeGVisorInstallationImageName, image.String())
 }
 
 // ImageVector is the image vector that contains all the needed images.
