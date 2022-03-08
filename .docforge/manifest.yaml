@@ -1,9 +1,4 @@
-{{- $vers := Split .versions "," -}}
-{{ $defaultBranch := (index $vers 0) }}
 structure:
 - name: _index.md
-  source: https://github.com/gardener/gardener-extension-runtime-gvisor/blob/{{$defaultBranch}}/README.md
-links:
-  downloads:
-    scope:
-      "gardener/gardener-extension-runtime-gvisor/(blob|raw)/(.*)/docs": ~
+  source: /README.md
+
