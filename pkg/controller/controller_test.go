@@ -23,6 +23,7 @@ import (
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	mockextensionscontroller "github.com/gardener/gardener/extensions/pkg/controller/mock"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -31,7 +32,7 @@ import (
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -50,9 +51,11 @@ var _ = Describe("Chart package test", func() {
 
 	Describe("#Actuator", func() {
 		var (
-			ctrl       = gomock.NewController(GinkgoT())
-			crf        = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
-			mockClient *mockclient.MockClient
+			ctrl              *gomock.Controller
+			crf               *mockextensionscontroller.MockChartRendererFactory
+			mockChartRenderer *mockchartrenderer.MockInterface
+			mockClient        *mockclient.MockClient
+			a                 containerruntime.Actuator
 
 			ctx             = context.TODO()
 			chartName       = "chartName"
@@ -83,17 +86,22 @@ var _ = Describe("Chart package test", func() {
 			errNotFound = &errors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}}
 		)
 
-		// Create actuator
-		a := controller.NewActuator(crf)
-		mockClient = mockclient.NewMockClient(ctrl)
+		BeforeEach(func() {
+			ctrl = gomock.NewController(GinkgoT())
+			crf = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
+			mockChartRenderer = mockchartrenderer.NewMockInterface(ctrl)
+			mockClient = mockclient.NewMockClient(ctrl)
+			a = controller.NewActuator(crf)
 
-		BeforeSuite(func() {
 			err := a.(inject.Client).InjectClient(mockClient)
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
-		It("Reconcile correctly - first ContainerRuntime", func() {
+		AfterEach(func() {
+			ctrl.Finish()
+		})
 
+		It("Reconcile correctly - first ContainerRuntime", func() {
 			// Create mock chart renderer and factory
 			chartRenderer := mockchartrenderer.NewMockInterface(ctrl)
 			crf.EXPECT().NewChartRendererForShoot(shootVersion).Return(chartRenderer, nil)
@@ -159,10 +167,7 @@ var _ = Describe("Chart package test", func() {
 		})
 
 		It("Reconcile correctly - add additional worker pool with gVisor", func() {
-
-			// Create mock chart renderer and factory
-			chartRenderer := mockchartrenderer.NewMockInterface(ctrl)
-			crf.EXPECT().NewChartRendererForShoot(shootVersion).Return(chartRenderer, nil)
+			crf.EXPECT().NewChartRendererForShoot(shootVersion).Return(mockChartRenderer, nil)
 			renderedChart := &chartrenderer.RenderedChart{
 				ChartName: chartName,
 				Manifests: []manifest.Manifest{{Content: manifestContent}},
@@ -172,7 +177,7 @@ var _ = Describe("Chart package test", func() {
 			mockClient.EXPECT().Get(context.TODO(), gomock.Any(), gomock.Any()).Return(nil)
 
 			// ---------- gVisor Installation -------------------
-			chartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
+			mockChartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
 			// Validate deployed secret
 			installationSecretName := fmt.Sprintf("%s-%s", controller.GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)
 			installationSecret := &corev1.Secret{
