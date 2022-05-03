@@ -25,7 +25,7 @@ import (
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/manifest"
@@ -34,8 +34,9 @@ import (
 var _ = Describe("Chart package test", func() {
 	Describe("#RenderGvisorChart", func() {
 		var (
-			ctrl                = gomock.NewController(GinkgoT())
-			mockChartRenderer   = mockchartrenderer.NewMockInterface(ctrl)
+			ctrl              *gomock.Controller
+			mockChartRenderer *mockchartrenderer.MockInterface
+
 			testManifestContent = "test-content"
 			mkManifest          = func(name string) manifest.Manifest {
 				return manifest.Manifest{Name: fmt.Sprintf("test/templates/%s", name), Content: testManifestContent}
@@ -57,6 +58,16 @@ var _ = Describe("Chart package test", func() {
 				},
 			}
 		)
+
+		BeforeEach(func() {
+			ctrl = gomock.NewController(GinkgoT())
+			mockChartRenderer = mockchartrenderer.NewMockInterface(ctrl)
+		})
+
+		AfterEach(func() {
+			ctrl.Finish()
+		})
+
 		It("Render Gvisor chart correctly", func() {
 			renderedValues := map[string]interface{}{
 				"config": map[string]interface{}{
