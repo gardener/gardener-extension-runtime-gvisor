@@ -26,8 +26,15 @@ LD_FLAGS                    := $(shell $(LD_FLAGS_GENERATOR) k8s.io/component-ba
 
 IGNORE_OPERATION_ANNOTATION := true
 
-### GVisor version: https://github.com/google/gvisor/releases
-GVISOR_VERSION				 	:= 20210726
+### GVisor versions
+# - https://github.com/google/gvisor/releases (not all Github tags are available in the registry)
+# - https://gvisor.dev/docs/user_guide/install/
+# To update the runsc + shim binary:
+#  1) Download latest: https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc
+#  2) Execute runsc --version to find version
+#  3) Check that specific specific release can be downloaded: https://storage.googleapis.com/gvisor/releases/release/20220425.0/x86_64/runsc
+#  4) Update version below
+GVISOR_VERSION				 	:= 20220425.0
 
 #################################################################
 # Rules related to binary build, Docker image build and release #
