@@ -1,8 +1,5 @@
 module github.com/gardener/gardener-extension-runtime-gvisor
 
-// Updating to 1.18 requires revendoring of g/g to update the golang-ci version (executed in make check)
-// See: https://github.com/gardener/gardener/pull/5896
-// Also requires adjustment in .golangci.yaml
 go 1.17
 
 require (
