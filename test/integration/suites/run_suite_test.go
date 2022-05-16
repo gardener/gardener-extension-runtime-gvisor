@@ -54,5 +54,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestGardenerSuite(t *testing.T) {
-	RunSpecsWithDefaultAndCustomReporters(t, "AWS Test Suite", []Reporter{reporter.NewGardenerESReporter(*reportFilePath, *esIndex)})
+	RunSpecs(t, "gVisor Test Suite")
 }
+
+var _ = ReportAfterSuite("Report to Elasticsearch", func(report Report) {
+	reporter.ReportResults(*reportFilePath, *esIndex, report)
+})
