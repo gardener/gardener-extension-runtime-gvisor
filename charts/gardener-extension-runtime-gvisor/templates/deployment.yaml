@@ -20,7 +20,7 @@ spec:
       labels:
 {{ include "labels" . | indent 8 }}
     spec:
-      priorityClassName: gardener-extension-runtime-gvisor
+      priorityClassName: gardener-system-900
       serviceAccountName: gardener-extension-runtime-gvisor
       containers:
       - name: gardener-extension-runtime-gvisor
