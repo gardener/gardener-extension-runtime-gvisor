@@ -5,7 +5,8 @@ WORKDIR /go/src/github.com/gardener/gardener-extension-runtime-gvisor
 COPY . .
 RUN make install install-binaries
 ############# gardener-extension-runtime-gvisor
-FROM scratch AS gardener-extension-runtime-gvisor
+FROM gcr.io/distroless/static-debian11:nonroot AS gardener-extension-runtime-gvisor
+WORKDIR /
 
 COPY charts /charts
 COPY --from=builder /go/bin/gardener-extension-runtime-gvisor /gardener-extension-runtime-gvisor
