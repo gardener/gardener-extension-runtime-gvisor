@@ -2,3 +2,12 @@ images:
   - name: runtime-gvisor-installation
     sourceRepository: github.com/gardener/gardener-extension-runtime-gvisor
     repository: eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation
+    labels:
+    - name: cloud.gardener.cnudie/responsibles
+      value:
+        - email: rafael.franzke@sap.com
+          type: emailAddress
+        - email: tim.ebert@sap.com
+          type: emailAddress
+        - email: ismail.alidzhikov@sap.com
+          type: emailAddress
