@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	componentbaseconfig "k8s.io/component-base/config"
-	"k8s.io/klog"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -48,8 +47,6 @@ type GardenletConfiguration struct {
 	LogLevel *string
 	// LogFormat is the output format for the logs. Must be one of [text,json].
 	LogFormat *string
-	// KubernetesLogLevel is the log level used for Kubernetes' k8s.io/klog functions.
-	KubernetesLogLevel *klog.Level
 	// Server defines the configuration of the HTTP server.
 	Server *ServerConfiguration
 	// Debugging holds configuration for Debugging related features.
@@ -81,10 +78,10 @@ type GardenletConfiguration struct {
 type GardenClientConnection struct {
 	componentbaseconfig.ClientConnectionConfiguration
 	// GardenClusterAddress is the external address that the gardenlets can use to remotely connect to the Garden
-	// cluster. It is needed in case the gardenlet deploys itself into shooted seeds.
+	// cluster. It is needed in case the gardenlet deploys itself into ManagedSeeds.
 	GardenClusterAddress *string
 	// GardenClusterCACert is the external address that the gardenlets can use to remotely connect to the Garden
-	// cluster. It is needed in case the gardenlet deploys itself into shooted seeds.
+	// cluster. It is needed in case the gardenlet deploys itself into ManagedSeeds.
 	GardenClusterCACert []byte
 	// BootstrapKubeconfig is a reference to a secret that contains a data key 'kubeconfig' whose value
 	// is a kubeconfig that can be used for bootstrapping. If `kubeconfig` is given then only this kubeconfig
@@ -130,15 +127,17 @@ type GardenletControllerConfiguration struct {
 	Shoot *ShootControllerConfiguration
 	// ShootCare defines the configuration of the ShootCare controller.
 	ShootCare *ShootCareControllerConfiguration
+	// SeedCare defines the configuration of the SeedCare controller.
+	SeedCare *SeedCareControllerConfiguration
 	// ShootMigration defines the configuration of the ShootMigration controller.
 	ShootMigration *ShootMigrationControllerConfiguration
 	// ShootStateSync defines the configuration of the ShootState controller.
 	ShootStateSync *ShootStateSyncControllerConfiguration
 	// SeedAPIServerNetworkPolicy defines the configuration of the SeedAPIServerNetworkPolicy controller.
 	SeedAPIServerNetworkPolicy *SeedAPIServerNetworkPolicyControllerConfiguration
-	// ManagedSeedControllerConfiguration the configuration of the ManagedSeed controller.
+	// ManagedSeedControllerConfiguration defines the configuration of the ManagedSeed controller.
 	ManagedSeed *ManagedSeedControllerConfiguration
-	// ShootSecretControllerConfiguration the configuration of the ShootSecret controller.
+	// ShootSecretControllerConfiguration defines the configuration of the ShootSecret controller.
 	ShootSecret *ShootSecretControllerConfiguration
 }
 
@@ -268,6 +267,20 @@ type ShootCareControllerConfiguration struct {
 	StaleExtensionHealthChecks *StaleExtensionHealthChecks
 	// ConditionThresholds defines the condition threshold per condition type.
 	ConditionThresholds []ConditionThreshold
+	// WebhookRemediatorEnabled specifies whether the remediator for webhooks not following the Kubernetes best
+	// practices (https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#best-practices-and-warnings)
+	// is enabled.
+	WebhookRemediatorEnabled *bool
+}
+
+// SeedCareControllerConfiguration defines the configuration of the SeedCare
+// controller.
+type SeedCareControllerConfiguration struct {
+	// SyncPeriod is the duration how often the existing resources are reconciled (how
+	// often the health check of Seed clusters is performed.
+	SyncPeriod *metav1.Duration
+	// ConditionThresholds defines the condition threshold per condition type.
+	ConditionThresholds []ConditionThreshold
 }
 
 // ShootMigrationControllerConfiguration defines the configuration of the ShootMigration
@@ -370,6 +383,14 @@ type FluentBit struct {
 	// OutputSection defines [OUTPUT] configuration for the fluent-bit.
 	// If it is nil, fluent-bit uses default output configuration.
 	OutputSection *string
+	// NetworkPolicy defines settings for the fluent-bit NetworkPolicy.
+	NetworkPolicy *FluentBitNetworkPolicy
+}
+
+// FluentBitNetworkPolicy defines settings for the fluent-bit NetworkPolicy.
+type FluentBitNetworkPolicy struct {
+	// AdditionalEgressIPBlocks contains IP CIDRs for the egress network policy.
+	AdditionalEgressIPBlocks []string
 }
 
 // Loki contains configuration for the Loki.

@@ -32,7 +32,7 @@ const (
 	// FinalizerName is the prefix name of the finalizer written by this controller.
 	FinalizerName = "extensions.gardener.cloud/containerruntime"
 	// ControllerName is the name of the controller.
-	ControllerName = "containerruntime_controller"
+	ControllerName = "containerruntime"
 )
 
 // AddArgs are arguments for adding an ContainerRuntime resources controller to a manager.
@@ -80,7 +80,7 @@ func add(mgr manager.Manager, args AddArgs) error {
 	if args.IgnoreOperationAnnotation {
 		if err := ctrl.Watch(
 			&source.Kind{Type: &extensionsv1alpha1.Cluster{}},
-			mapper.EnqueueRequestsFrom(ClusterToContainerResourceMapper(predicates...), mapper.UpdateWithNew),
+			mapper.EnqueueRequestsFrom(ClusterToContainerResourceMapper(predicates...), mapper.UpdateWithNew, ctrl.GetLogger()),
 		); err != nil {
 			return err
 		}
