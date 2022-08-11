@@ -19,9 +19,10 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/go-logr/logr"
 )
 
 // Restore implements ContainerRuntime.Actuator.
-func (a *actuator) Restore(ctx context.Context, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
-	return a.Reconcile(ctx, cr, cluster)
+func (a *actuator) Restore(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+	return a.Reconcile(ctx, log, cr, cluster)
 }

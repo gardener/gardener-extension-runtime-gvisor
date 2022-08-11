@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
+	"github.com/go-logr/logr"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -42,7 +43,7 @@ const (
 )
 
 // Reconcile implements ContainerRuntime.Actuator.
-func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
 	chartRenderer, err := a.chartRendererFactory.NewChartRendererForShoot(cluster.Shoot.Spec.Kubernetes.Version)
 	if err != nil {
 		return fmt.Errorf("could not create chart renderer for shoot '%s', %w", cr.Namespace, err)
@@ -54,7 +55,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		a.logger.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace)
+		log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace)
 		// create MR containing the prerequisites for the installation DaemonSet
 		gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version)
 		if err != nil {
@@ -75,7 +76,7 @@ func (a *actuator) Reconcile(ctx context.Context, cr *extensionsv1alpha1.Contain
 		}
 	}
 
-	a.logger.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace, "worker pool", cr.Spec.WorkerPool.Name)
+	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace, "worker pool", cr.Spec.WorkerPool.Name)
 	gVisorChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr)
 	if err != nil {
 		return err

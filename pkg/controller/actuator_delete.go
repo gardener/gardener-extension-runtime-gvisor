@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+	"github.com/go-logr/logr"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -29,8 +30,8 @@ import (
 )
 
 // Delete implements ContainerRuntime.Actuator.
-func (a *actuator) Delete(ctx context.Context, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
-	a.logger.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managed resource", fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), "namespace", cr.Namespace, "containerRuntime", cr.Name)
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managed resource", fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), "namespace", cr.Namespace, "containerRuntime", cr.Name)
 	if err := a.deleteManagedResource(ctx, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)); err != nil {
 		return err
 	}
@@ -42,10 +43,10 @@ func (a *actuator) Delete(ctx context.Context, cr *extensionsv1alpha1.ContainerR
 	}
 
 	if isGVisorInstallationRequired(cr.Name, list) {
-		a.logger.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion", "namespace", cr.Namespace, "containerRuntime", cr.Name)
+		log.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion", "namespace", cr.Namespace, "containerRuntime", cr.Name)
 		return nil
 	}
-	a.logger.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managed resource", GVisorManagedResourceName)
+	log.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managed resource", GVisorManagedResourceName)
 
 	return a.deleteManagedResource(ctx, cr.Namespace, GVisorManagedResourceName, GVisorSecretName)
 }

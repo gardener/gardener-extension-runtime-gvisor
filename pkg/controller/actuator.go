@@ -17,17 +17,13 @@ package controller
 import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type actuator struct {
-	logger logr.Logger
-
 	chartRendererFactory extensionscontroller.ChartRendererFactory
 	restConfig           *rest.Config
 
@@ -36,12 +32,9 @@ type actuator struct {
 	decoder runtime.Decoder
 }
 
-const logId = "runtime-gvisor-actuator"
-
 // NewActuator creates a new Actuator that updates the status of the handled ContainerRuntime resources.
 func NewActuator(chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
 	return &actuator{
-		logger:               log.Log.WithName(logId),
 		chartRendererFactory: chartRendererFactory,
 	}
 }
