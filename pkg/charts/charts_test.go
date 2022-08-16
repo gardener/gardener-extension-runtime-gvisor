@@ -73,6 +73,7 @@ var _ = Describe("Chart package test", func() {
 				"config": map[string]interface{}{
 					"kubernetesVersion": kubernetesVersion,
 				},
+				"pspDisabled": true,
 			}
 
 			mockChartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
@@ -82,7 +83,7 @@ var _ = Describe("Chart package test", func() {
 				},
 			}, nil)
 
-			_, err := charts.RenderGVisorChart(mockChartRenderer, kubernetesVersion)
+			_, err := charts.RenderGVisorChart(mockChartRenderer, kubernetesVersion, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

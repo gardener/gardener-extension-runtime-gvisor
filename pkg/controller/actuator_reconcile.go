@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -57,7 +58,8 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		}
 		log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace)
 		// create MR containing the prerequisites for the installation DaemonSet
-		gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version)
+		pspDisabled := gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot)
+		gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version, pspDisabled)
 		if err != nil {
 			return err
 		}
