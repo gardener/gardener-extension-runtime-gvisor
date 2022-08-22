@@ -24,11 +24,8 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -50,49 +47,42 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		return fmt.Errorf("could not create chart renderer for shoot '%s', %w", cr.Namespace, err)
 	}
 
-	// if the managed resource containing the prerequisites is not available yet, create it.
-	mr := &resourcesv1alpha1.ManagedResource{}
-	if err := a.client.Get(ctx, kutil.Key(cr.Namespace, GVisorManagedResourceName), mr); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
-		log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace)
-		// create MR containing the prerequisites for the installation DaemonSet
-		pspDisabled := gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot)
-		gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version, pspDisabled)
-		if err != nil {
-			return err
-		}
-
-		secret, secretRefs := gvisorSecret(a.client, gVisorChart, cr.Namespace, GVisorSecretName)
-		if err := secret.Reconcile(ctx); err != nil {
-			return err
-		}
-
-		if err := builder.
-			NewManagedResource(a.client).
-			WithNamespacedName(cr.Namespace, GVisorManagedResourceName).
-			WithSecretRefs(secretRefs).
-			Reconcile(ctx); err != nil {
-			return fmt.Errorf("failed to create managed resource - prerequisite for the installation of gVisor, %w", err)
-		}
-	}
-
-	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace, "workerPoolName", cr.Spec.WorkerPool.Name)
-	gVisorChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr)
+	log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace)
+	// create MR containing the prerequisites for the installation DaemonSet
+	pspDisabled := gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot)
+	gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version, pspDisabled)
 	if err != nil {
 		return err
 	}
 
-	secret, secretRefs := gvisorSecret(a.client, gVisorChart, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name))
-	if err := secret.Reconcile(ctx); err != nil {
+	gvisorSecret, gvisorSecretRefs := buildSecret(a.client, gVisorChart, cr.Namespace, GVisorSecretName)
+	if err := gvisorSecret.Reconcile(ctx); err != nil {
+		return err
+	}
+
+	if err := builder.
+		NewManagedResource(a.client).
+		WithNamespacedName(cr.Namespace, GVisorManagedResourceName).
+		WithSecretRefs(gvisorSecretRefs).
+		Reconcile(ctx); err != nil {
+		return fmt.Errorf("failed to create managed resource - prerequisite for the installation of gVisor, %w", err)
+	}
+
+	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace, "workerPoolName", cr.Spec.WorkerPool.Name)
+	gVisorInstallationChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr)
+	if err != nil {
+		return err
+	}
+
+	gVisorInstallationSecret, gVisorInstallationSecretRefs := buildSecret(a.client, gVisorInstallationChart, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name))
+	if err := gVisorInstallationSecret.Reconcile(ctx); err != nil {
 		return err
 	}
 
 	return builder.
 		NewManagedResource(a.client).
 		WithNamespacedName(cr.Namespace, GetGVisorInstallationManagedResourceName(cr)).
-		WithSecretRefs(secretRefs).
+		WithSecretRefs(gVisorInstallationSecretRefs).
 		Reconcile(ctx)
 }
 
@@ -109,7 +99,7 @@ func withLocalObjectRefs(refs ...string) []corev1.LocalObjectReference {
 	return localObjectRefs
 }
 
-func gvisorSecret(cl client.Client, gVisorConfig []byte, namespace, secretName string) (*builder.Secret, []corev1.LocalObjectReference) {
+func buildSecret(cl client.Client, gVisorConfig []byte, namespace, secretName string) (*builder.Secret, []corev1.LocalObjectReference) {
 	return builder.NewSecret(cl).
 		WithKeyValues(map[string][]byte{charts.GVisorConfigKey: gVisorConfig}).
 		WithNamespacedName(namespace, secretName), withLocalObjectRefs(secretName)
