@@ -55,7 +55,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace)
+		log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace)
 		// create MR containing the prerequisites for the installation DaemonSet
 		gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version)
 		if err != nil {
@@ -76,7 +76,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		}
 	}
 
-	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "namespace", cluster.Shoot.Namespace, "worker pool", cr.Spec.WorkerPool.Name)
+	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace, "workerPoolName", cr.Spec.WorkerPool.Name)
 	gVisorChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr)
 	if err != nil {
 		return err

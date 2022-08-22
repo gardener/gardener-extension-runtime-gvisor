@@ -16,7 +16,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
@@ -31,8 +30,10 @@ import (
 
 // Delete implements ContainerRuntime.Actuator.
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
-	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managed resource", fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), "namespace", cr.Namespace, "containerRuntime", cr.Name)
-	if err := a.deleteManagedResource(ctx, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name), fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)); err != nil {
+	managedResourceName := GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
+	secretName := GVisorInstallationSecretName + "-" + cr.Spec.WorkerPool.Name
+	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managedResourceName", managedResourceName, "namespace", cr.Namespace, "containerRuntime", cr.Name)
+	if err := a.deleteManagedResource(ctx, cr.Namespace, managedResourceName, secretName); err != nil {
 		return err
 	}
 
@@ -46,7 +47,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1
 		log.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion", "namespace", cr.Namespace, "containerRuntime", cr.Name)
 		return nil
 	}
-	log.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managed resource", GVisorManagedResourceName)
+	log.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managedResourceName", GVisorManagedResourceName)
 
 	return a.deleteManagedResource(ctx, cr.Namespace, GVisorManagedResourceName, GVisorSecretName)
 }
