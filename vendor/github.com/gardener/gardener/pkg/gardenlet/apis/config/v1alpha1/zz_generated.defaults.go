@@ -79,6 +79,9 @@ func SetObjectDefaults_GardenletConfiguration(in *GardenletConfiguration) {
 				SetDefaults_StaleExtensionHealthChecks(in.Controllers.ShootCare.StaleExtensionHealthChecks)
 			}
 		}
+		if in.Controllers.SeedCare != nil {
+			SetDefaults_SeedCareControllerConfiguration(in.Controllers.SeedCare)
+		}
 		if in.Controllers.ShootMigration != nil {
 			SetDefaults_ShootMigrationControllerConfiguration(in.Controllers.ShootMigration)
 		}
@@ -107,6 +110,9 @@ func SetObjectDefaults_GardenletConfiguration(in *GardenletConfiguration) {
 			SetDefaults_SNIIngress(in.SNI.Ingress)
 		}
 	}
+	if in.ETCDConfig != nil {
+		SetDefaults_ETCDConfig(in.ETCDConfig)
+	}
 	for i := range in.ExposureClassHandlers {
 		a := &in.ExposureClassHandlers[i]
 		if a.SNI != nil {
@@ -114,6 +120,12 @@ func SetObjectDefaults_GardenletConfiguration(in *GardenletConfiguration) {
 			if a.SNI.Ingress != nil {
 				SetDefaults_SNIIngress(a.SNI.Ingress)
 			}
+		}
+	}
+	if in.Monitoring != nil {
+		SetDefaults_MonitoringConfig(in.Monitoring)
+		if in.Monitoring.Shoot != nil {
+			SetDefaults_ShootMonitoringConfig(in.Monitoring.Shoot)
 		}
 	}
 }

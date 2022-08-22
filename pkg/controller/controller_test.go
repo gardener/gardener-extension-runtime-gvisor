@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/helm/pkg/manifest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
@@ -57,7 +58,9 @@ var _ = Describe("Chart package test", func() {
 			mockClient        *mockclient.MockClient
 			a                 containerruntime.Actuator
 
-			ctx             = context.TODO()
+			ctx = context.TODO()
+			log = logf.Log.WithName("test")
+
 			chartName       = "chartName"
 			manifestContent = "manifestContent"
 			namespaceName   = "namespace"
@@ -161,7 +164,7 @@ var _ = Describe("Chart package test", func() {
 			mockClient.EXPECT().Create(ctx, managedResourceInstallation).Return(nil)
 
 			// Create mock mockClient
-			err := a.Reconcile(ctx, cr, cluster)
+			err := a.Reconcile(ctx, log, cr, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -202,7 +205,7 @@ var _ = Describe("Chart package test", func() {
 			mockClient.EXPECT().Create(ctx, managedResourceInstallation).Return(nil)
 
 			// Create mock mockClient
-			err := a.Reconcile(ctx, cr, cluster)
+			err := a.Reconcile(ctx, log, cr, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -275,7 +278,7 @@ var _ = Describe("Chart package test", func() {
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
 
 			// Create mock mockClient
-			err := a.Delete(ctx, cr, cluster)
+			err := a.Delete(ctx, log, cr, cluster)
 
 			//mockClient.EXPECT().Delete()
 			Expect(err).NotTo(HaveOccurred())
@@ -319,7 +322,7 @@ var _ = Describe("Chart package test", func() {
 			})
 
 			// Create mock mockClient
-			err := a.Delete(ctx, cr, cluster)
+			err := a.Delete(ctx, log, cr, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
 		})
