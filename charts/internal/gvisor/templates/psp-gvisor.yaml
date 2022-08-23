@@ -1,3 +1,4 @@
+{{- if not .Values.pspDisabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -22,3 +23,4 @@ spec:
     rule: 'RunAsAny'
   fsGroup:
     rule: 'RunAsAny'
+{{- end }}

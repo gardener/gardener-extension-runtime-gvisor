@@ -114,8 +114,6 @@ var _ = Describe("Chart package test", func() {
 			}
 
 			// ---------- gVisor Preparation -------------------
-			// mockClient retrieves extension-runtime-gvisor managed resource - not found
-			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
 			// chart renderer renders chart with path "gvisor"
 			chartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
 			// mockClient creates or update secret for managed resource "extension-runtime-gvisor"
@@ -176,8 +174,27 @@ var _ = Describe("Chart package test", func() {
 				Manifests: []manifest.Manifest{{Content: manifestContent}},
 			}
 
-			// mockClient retrieves extension-runtime-gvisor managed resource - already exists
-			mockClient.EXPECT().Get(context.TODO(), gomock.Any(), gomock.Any()).Return(nil)
+			// ---------- gVisor Preparation -------------------
+			// chart renderer renders chart with path "gvisor"
+			mockChartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorSecretName, Namespace: namespaceName},
+				Data:       map[string][]byte{charts.GVisorConfigKey: renderedChart.Manifest()},
+				Type:       corev1.SecretTypeOpaque,
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, secret).Return(nil)
+			// Validate deployed managed resource "extension-runtime-gvisor"
+			managedResource := &resourcesv1alpha1.ManagedResource{
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
+				Spec: resourcesv1alpha1.ManagedResourceSpec{
+					SecretRefs: []corev1.LocalObjectReference{
+						{Name: controller.GVisorSecretName},
+					},
+				},
+			}
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+			mockClient.EXPECT().Create(ctx, managedResource).Return(nil)
 
 			// ---------- gVisor Installation -------------------
 			mockChartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
@@ -271,10 +288,7 @@ var _ = Describe("Chart package test", func() {
 				obj.(*resourcesv1alpha1.ManagedResource).ObjectMeta.DeletionTimestamp = &now
 				return nil
 			}
-			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
-			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
-			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
-			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(managedResourceStillAvailable).Times(4)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
 
 			// Create mock mockClient
