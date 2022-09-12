@@ -45,7 +45,7 @@ import (
 )
 
 const (
-	shootVersion = "1.14.0"
+	shootVersion = "1.24.0"
 )
 
 var _ = Describe("Chart package test", func() {

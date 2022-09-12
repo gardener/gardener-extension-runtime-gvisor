@@ -41,8 +41,7 @@ var _ = Describe("Chart package test", func() {
 			mkManifest          = func(name string) manifest.Manifest {
 				return manifest.Manifest{Name: fmt.Sprintf("test/templates/%s", name), Content: testManifestContent}
 			}
-			workerGroup       = "worker-gvisor"
-			kubernetesVersion = "1.0.0"
+			workerGroup = "worker-gvisor"
 
 			cr = extensionsv1alpha1.ContainerRuntime{
 				Spec: extensionsv1alpha1.ContainerRuntimeSpec{
@@ -70,9 +69,6 @@ var _ = Describe("Chart package test", func() {
 
 		It("Render Gvisor chart correctly", func() {
 			renderedValues := map[string]interface{}{
-				"config": map[string]interface{}{
-					"kubernetesVersion": kubernetesVersion,
-				},
 				"pspDisabled": true,
 			}
 
@@ -83,7 +79,7 @@ var _ = Describe("Chart package test", func() {
 				},
 			}, nil)
 
-			_, err := charts.RenderGVisorChart(mockChartRenderer, kubernetesVersion, true)
+			_, err := charts.RenderGVisorChart(mockChartRenderer, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
