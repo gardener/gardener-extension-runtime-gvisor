@@ -1,9 +1,10 @@
 ############# builder
 FROM golang:1.18.5 AS builder
 
+ARG EFFECTIVE_VERSION
 WORKDIR /go/src/github.com/gardener/gardener-extension-runtime-gvisor
 COPY . .
-RUN make install install-binaries
+RUN make install install-binaries EFFECTIVE_VERSION=$EFFECTIVE_VERSION
 ############# gardener-extension-runtime-gvisor
 FROM gcr.io/distroless/static-debian11:nonroot AS gardener-extension-runtime-gvisor
 WORKDIR /
