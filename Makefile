@@ -23,12 +23,13 @@ HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
 EFFECTIVE_VERSION           := $(VERSION)-$(shell git rev-parse HEAD)
 LD_FLAGS_GENERATOR          := $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/get-build-ld-flags.sh
-LD_FLAGS                    := $(shell $(LD_FLAGS_GENERATOR) k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))
 IGNORE_OPERATION_ANNOTATION := true
 
 ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
 endif
+
+LD_FLAGS := $(shell EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(LD_FLAGS_GENERATOR) k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))
 
 ### GVisor versions
 # - https://github.com/google/gvisor/releases (not all Github tags are available in the registry)
