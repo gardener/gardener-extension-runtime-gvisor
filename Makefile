@@ -21,10 +21,15 @@ IMAGE_PREFIX                := $(REGISTRY)/extensions
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
+EFFECTIVE_VERSION           := $(VERSION)-$(shell git rev-parse HEAD)
 LD_FLAGS_GENERATOR          := $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/get-build-ld-flags.sh
-LD_FLAGS                    := $(shell $(LD_FLAGS_GENERATOR) k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))
-
 IGNORE_OPERATION_ANNOTATION := true
+
+ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
+	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
+endif
+
+LD_FLAGS := $(shell EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(LD_FLAGS_GENERATOR) k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))
 
 ### GVisor versions
 # - https://github.com/google/gvisor/releases (not all Github tags are available in the registry)
@@ -33,8 +38,8 @@ IGNORE_OPERATION_ANNOTATION := true
 #  1) Download latest: https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc
 #  2) Execute runsc --version to find version
 #  3) Check that specific specific release can be downloaded: https://storage.googleapis.com/gvisor/releases/release/20220425.0/x86_64/runsc
-#  4) Update version below
-GVISOR_VERSION				 	:= 20220425.0
+#  4) Update version in GVISOR_VERSION file
+GVISOR_VERSION := $(shell cat GVISOR_VERSION)
 
 #########################################
 # Tools                                 #
@@ -54,7 +59,7 @@ install:
 
 .PHONY: install-binaries
 install-binaries:
-	@bash $(HACK_DIR)/install-binaries.sh $(GVISOR_VERSION)
+	$(HACK_DIR)/install-binaries.sh $(GVISOR_VERSION)
 
 .PHONY: docker-login
 docker-login:
@@ -62,8 +67,21 @@ docker-login:
 
 .PHONY: docker-images
 docker-images:
-	@docker build -t $(IMAGE_PREFIX)/$(NAME):$(VERSION) -t $(IMAGE_PREFIX)/$(NAME):latest -f Dockerfile -m 6g --target $(EXTENSION_PREFIX)-$(NAME) .
-	@docker build -t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):$(VERSION) -t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):latest -f Dockerfile -m 200m --target $(EXTENSION_PREFIX)-$(NAME_INSTALLATION) .
+	@docker build \
+		--build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) \
+		-t $(IMAGE_PREFIX)/$(NAME):$(EFFECTIVE_VERSION) \
+		-t $(IMAGE_PREFIX)/$(NAME):latest \
+		-f Dockerfile \
+		-m 6g \
+		--target $(EXTENSION_PREFIX)-$(NAME) \
+		.
+	@docker build \
+		-t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):$(EFFECTIVE_VERSION) \
+		-t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):latest \
+		-f Dockerfile \
+		-m 200m \
+		--target $(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
+		.
 
 #####################################################################
 # Rules for verification, formatting, linting, testing and cleaning #
