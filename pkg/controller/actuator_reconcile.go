@@ -50,7 +50,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 	log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace)
 	// create MR containing the prerequisites for the installation DaemonSet
 	pspDisabled := gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot)
-	gVisorChart, err := charts.RenderGVisorChart(chartRenderer, cluster.Shoot.Spec.Kubernetes.Version, pspDisabled)
+	gVisorChart, err := charts.RenderGVisorChart(chartRenderer, pspDisabled)
 	if err != nil {
 		return err
 	}

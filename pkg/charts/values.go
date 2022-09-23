@@ -57,13 +57,8 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 }
 
 // RenderGVisorChart renders the gVisor chart
-func RenderGVisorChart(renderer chartrenderer.Interface, kubernetesVersion string, pspDisabled bool) ([]byte, error) {
-	configChartValues := map[string]interface{}{
-		"kubernetesVersion": kubernetesVersion,
-	}
-
+func RenderGVisorChart(renderer chartrenderer.Interface, pspDisabled bool) ([]byte, error) {
 	gvisorChartValues := map[string]interface{}{
-		"config":      configChartValues,
 		"pspDisabled": pspDisabled,
 	}
 
