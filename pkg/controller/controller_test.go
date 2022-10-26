@@ -280,7 +280,7 @@ var _ = Describe("Chart package test", func() {
 			mockClient.EXPECT().Delete(ctx, secret).Return(nil)
 
 			// wait for managed resource to be deleted
-			managedResourceStillAvailable := func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+			managedResourceStillAvailable := func(ctx context.Context, key client.ObjectKey, obj runtime.Object, _ ...client.GetOption) error {
 				Expect(obj).To(BeAssignableToTypeOf(&resourcesv1alpha1.ManagedResource{}))
 				object := client.ObjectKeyFromObject(managedResource)
 				Expect(key).To(Equal(object))
