@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
-	github.com/gardener/gardener v1.58.0
+	github.com/gardener/gardener v1.59.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo/v2 v2.1.4
@@ -139,7 +139,6 @@ require (
 )
 
 replace (
-	// workaround for https://github.com/gardener/hvpa-controller/issues/92, remove once it's fixed
 	github.com/gardener/hvpa-controller => github.com/gardener/hvpa-controller v0.4.0
 	github.com/gardener/hvpa-controller/api => github.com/gardener/hvpa-controller/api v0.4.0
 	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20220531185024-cc90d57b7fe1 // translates to k8s.io/autoscaler/vertical-pod-autoscaler@v0.11.0
