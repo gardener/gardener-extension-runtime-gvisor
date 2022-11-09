@@ -1,6 +1,6 @@
 module github.com/gardener/gardener-extension-runtime-gvisor
 
-go 1.17
+go 1.19
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
@@ -138,9 +138,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace (
-	github.com/gardener/hvpa-controller => github.com/gardener/hvpa-controller v0.4.0
-	github.com/gardener/hvpa-controller/api => github.com/gardener/hvpa-controller/api v0.4.0
-	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20220531185024-cc90d57b7fe1 // translates to k8s.io/autoscaler/vertical-pod-autoscaler@v0.11.0
-	k8s.io/client-go => k8s.io/client-go v0.25.0
-)
+replace k8s.io/client-go => k8s.io/client-go v0.25.0
