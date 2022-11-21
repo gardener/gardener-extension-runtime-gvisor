@@ -44,15 +44,17 @@ rules:
   - leases
   verbs:
   - create
+  - list 
+  - watch 
 - apiGroups:
   - coordination.k8s.io
   resources:
   - leases
   resourceNames:
   - runtime-gvisor-leader-election
+  - gardener-extension-heartbeat 
   verbs:
   - get
-  - watch
   - update
   - patch
 - apiGroups:

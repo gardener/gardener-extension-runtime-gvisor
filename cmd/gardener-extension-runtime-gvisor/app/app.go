@@ -22,6 +22,8 @@ import (
 	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck"
+	"github.com/gardener/gardener/extensions/pkg/controller/heartbeat"
+	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
@@ -58,12 +60,20 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			MaxConcurrentReconciles: 5,
 		}
 
+		// options for the heartbeat controller
+		heartbeatCtrlOpts = &heartbeatcmd.Options{
+			ExtensionName:        gvisor.Name,
+			RenewIntervalSeconds: 30,
+			Namespace:            os.Getenv("LEADER_ELECTION_NAMESPACE"),
+		}
+
 		aggOption = controllercmd.NewOptionAggregator(
 			generalOpts,
 			restOpts,
 			mgrOpts,
 			gvisorCtrlOpts,
 			controllercmd.PrefixOption("healthcheck-", healthCheckCtrlOpts),
+			controllercmd.PrefixOption("heartbeat-", heartbeatCtrlOpts),
 			reconcileOpts,
 		)
 	)
@@ -77,6 +87,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			if err := aggOption.Complete(); err != nil {
 				return fmt.Errorf("error completing options: %w", err)
+			}
+
+			if err := heartbeatCtrlOpts.Validate(); err != nil {
+				return err
 			}
 
 			completedMgrOpts := mgrOpts.Completed().Options()
@@ -95,6 +109,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			reconcileOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.IgnoreOperationAnnotation)
 			gvisorCtrlOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.Controller)
+			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
 			if err := gvisorcontroller.AddToManager(mgr); err != nil {
 				return fmt.Errorf("could not add controllers to manager: %w", err)
@@ -102,6 +117,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			if err := healthcheck.AddToManager(mgr); err != nil {
 				return fmt.Errorf("could not add health check controller to manager: %w", err)
+			}
+
+			if err := heartbeat.AddToManager(mgr); err != nil {
+				return fmt.Errorf("could not add heartbeat controller to manager: %w", err)
 			}
 
 			if err := mgr.Start(ctx); err != nil {

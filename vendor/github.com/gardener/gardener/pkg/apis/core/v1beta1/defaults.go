@@ -143,10 +143,11 @@ func SetDefaults_SeedSettingDependencyWatchdog(obj *SeedSettingDependencyWatchdo
 
 // SetDefaults_Shoot sets default values for Shoot objects.
 func SetDefaults_Shoot(obj *Shoot) {
-	if obj.Spec.Kubernetes.AllowPrivilegedContainers == nil {
+	// Errors are ignored here because we cannot do anything meaningful with them - variables will default to `false`.
+	k8sLess125, _ := versionutils.CheckVersionMeetsConstraint(obj.Spec.Kubernetes.Version, "< 1.25")
+	if obj.Spec.Kubernetes.AllowPrivilegedContainers == nil && k8sLess125 && !isPSPDisabled(obj) {
 		obj.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Bool(true)
 	}
-
 	if obj.Spec.Kubernetes.KubeAPIServer == nil {
 		obj.Spec.Kubernetes.KubeAPIServer = &KubeAPIServerConfig{}
 	}
@@ -291,11 +292,9 @@ func SetDefaults_Shoot(obj *Shoot) {
 			continue
 		}
 
-		if worker.CRI != nil {
-			continue
+		if worker.CRI == nil {
+			obj.Spec.Provider.Workers[i].CRI = &CRI{Name: CRINameContainerD}
 		}
-
-		obj.Spec.Provider.Workers[i].CRI = &CRI{Name: CRINameContainerD}
 	}
 
 	if obj.Spec.SystemComponents == nil {
@@ -434,6 +433,14 @@ func SetDefaults_ControllerRegistrationDeployment(obj *ControllerRegistrationDep
 
 // SetDefaults_MachineImageVersion sets default values for MachineImageVersion objects.
 func SetDefaults_MachineImageVersion(obj *MachineImageVersion) {
+	if len(obj.CRI) == 0 {
+		obj.CRI = []CRI{
+			{
+				Name: CRINameDocker,
+			},
+		}
+	}
+
 	if len(obj.Architectures) == 0 {
 		obj.Architectures = []string{v1beta1constants.ArchitectureAMD64}
 	}
@@ -474,4 +481,15 @@ func addTolerations(tolerations *[]Toleration, additionalTolerations ...Tolerati
 		}
 		*tolerations = append(*tolerations, toleration)
 	}
+}
+
+func isPSPDisabled(shoot *Shoot) bool {
+	if shoot.Spec.Kubernetes.KubeAPIServer != nil {
+		for _, plugin := range shoot.Spec.Kubernetes.KubeAPIServer.AdmissionPlugins {
+			if plugin.Name == "PodSecurityPolicy" && pointer.BoolDeref(plugin.Disabled, false) {
+				return true
+			}
+		}
+	}
+	return false
 }
