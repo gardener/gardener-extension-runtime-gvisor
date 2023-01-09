@@ -21,11 +21,9 @@ spec:
     spec:
       serviceAccountName: gvisor
       automountServiceAccountToken: false
-      {{- if semverCompare ">= 1.19" .Capabilities.KubeVersion.GitVersion }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-      {{- end }}
       hostPID: true
       hostIPC: true
       nodeSelector:
