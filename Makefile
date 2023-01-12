@@ -37,7 +37,7 @@ LD_FLAGS := $(shell EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(LD_FLAGS_GENERATOR)
 # To update the runsc + shim binary:
 #  1) Download latest: https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc
 #  2) Execute runsc --version to find version
-#  3) Check that specific specific release can be downloaded: https://storage.googleapis.com/gvisor/releases/release/20220425.0/x86_64/runsc
+#  3) Check that specific specific release can be downloaded: https://storage.googleapis.com/gvisor/releases/release/20230102.0/x86_64/runsc
 #  4) Update version in GVISOR_VERSION file
 GVISOR_VERSION := $(shell cat GVISOR_VERSION)
 
@@ -79,7 +79,7 @@ docker-images:
 		-t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):$(EFFECTIVE_VERSION) \
 		-t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):latest \
 		-f Dockerfile \
-		-m 200m \
+		-m 6g \
 		--target $(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
 		.
 
