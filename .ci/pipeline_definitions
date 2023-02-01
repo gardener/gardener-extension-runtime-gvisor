@@ -16,11 +16,29 @@ gardener-extension-runtime-gvisor:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor'
             dockerfile: 'Dockerfile'
             target: gardener-extension-runtime-gvisor
+            resource_labels:
+            - name: 'cloud.gardener.cnudie/responsibles'
+              value:
+              - type: 'githubUser'
+                username: 'marwinski'
+              - type: 'githubUser'
+                username: 'MrBatschner'
+              - type: 'githubUser'
+                username: 'danielfoehrKn'
           gardener-extension-runtime-gvisor-installation:
             registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/extensions/runtime-gvisor-installation'
             dockerfile: 'Dockerfile'
             target: gardener-extension-runtime-gvisor-installation
+            resource_labels:
+            - name: 'cloud.gardener.cnudie/responsibles'
+              value:
+              - type: 'githubUser'
+                username: 'marwinski'
+              - type: 'githubUser'
+                username: 'MrBatschner'
+              - type: 'githubUser'
+                username: 'danielfoehrKn'
   jobs:
     head-update:
       traits:
