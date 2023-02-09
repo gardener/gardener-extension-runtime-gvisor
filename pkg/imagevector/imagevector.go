@@ -17,12 +17,12 @@ package imagevector
 import (
 	"strings"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/version"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 var imageVector imagevector.ImageVector
