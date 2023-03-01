@@ -18,6 +18,11 @@ spec:
         {{- if .Values.image.imageVectorOverwrite }}
         checksum/configmap-gvisor-imagevector-overwrite: {{ include (print $.Template.BasePath "/configmap-imagevector-overwrite.yaml") . | sha256sum }}
         {{- end }}
+        {{- if .Values.metrics.enableScraping }}
+        prometheus.io/name: "{{ .Release.Name }}"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.metrics.port }}"
+        {{- end }}
       labels:
 {{ include "labels" . | indent 8 }}
     spec:
