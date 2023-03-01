@@ -18,10 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	mockextensionscontroller "github.com/gardener/gardener/extensions/pkg/controller/mock"
@@ -42,6 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 const (

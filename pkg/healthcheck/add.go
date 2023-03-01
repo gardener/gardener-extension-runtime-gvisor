@@ -17,10 +17,6 @@ package healthcheck
 import (
 	"time"
 
-	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-	custom "github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck/custom_health_check"
-
 	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck/general"
@@ -29,6 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+	custom "github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck/custom_health_check"
 )
 
 var (

@@ -18,14 +18,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-	"github.com/go-logr/logr"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	utils "github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 // Delete implements ContainerRuntime.Actuator.
