@@ -17,7 +17,7 @@ package container_runtime
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
@@ -117,7 +117,7 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		reader, err := framework.NewPodExecutor(f.ShootClient).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, "dmesg | grep -i -c gVisor")
 		g.Expect(err).ToNot(g.HaveOccurred())
 
-		response, err := ioutil.ReadAll(reader)
+		response, err := io.ReadAll(reader)
 		g.Expect(err).ToNot(g.HaveOccurred())
 		g.Expect(response).ToNot(g.BeNil())
 		g.Expect(string(response)).To(g.Equal(fmt.Sprintf("%s\n", "1")))
