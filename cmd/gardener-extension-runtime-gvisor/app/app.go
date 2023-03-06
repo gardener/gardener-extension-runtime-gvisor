@@ -19,20 +19,19 @@ import (
 	"fmt"
 	"os"
 
-	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck"
-	"github.com/gardener/gardener/extensions/pkg/controller/heartbeat"
-	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
-
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller/heartbeat"
+	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 // NewControllerManagerCommand creates a new command that is used to start the Container runtime gvisor controller.
@@ -113,10 +112,6 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			if err := gvisorcontroller.AddToManager(mgr); err != nil {
 				return fmt.Errorf("could not add controllers to manager: %w", err)
-			}
-
-			if err := healthcheck.AddToManager(mgr); err != nil {
-				return fmt.Errorf("could not add health check controller to manager: %w", err)
 			}
 
 			if err := heartbeat.AddToManager(mgr); err != nil {

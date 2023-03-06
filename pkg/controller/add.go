@@ -15,14 +15,14 @@
 package controller
 
 import (
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 var (

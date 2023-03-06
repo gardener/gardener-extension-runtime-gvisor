@@ -20,6 +20,12 @@ vpa:
 leaderElection:
   resourceLock: leases
 
+# settings for metrics, e.g. scraping by seed-prometheus
+metrics:
+  enableScraping: true
+  # default metrics endpoint in controller-runtime
+  port: 8080
+
 controllers:
   concurrentSyncs: 5
   ignoreOperationAnnotation: false

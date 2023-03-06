@@ -15,12 +15,12 @@
 package charts
 
 import (
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/imagevector"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/imagevector"
 )
 
 // GVisorConfigKey is the key for the gVisor configuration.

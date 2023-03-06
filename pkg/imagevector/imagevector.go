@@ -15,14 +15,12 @@
 package imagevector
 
 import (
-	"strings"
-
-	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/version"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 var imageVector imagevector.ImageVector
@@ -30,7 +28,7 @@ var imageVector imagevector.ImageVector
 func init() {
 	var err error
 
-	imageVector, err = imagevector.Read(strings.NewReader(charts.ImagesYAML))
+	imageVector, err = imagevector.Read([]byte(charts.ImagesYAML))
 	runtime.Must(err)
 	// image vector for components deployed by the gVisor extension
 	imageVector, err = imagevector.WithEnvOverride(imageVector)

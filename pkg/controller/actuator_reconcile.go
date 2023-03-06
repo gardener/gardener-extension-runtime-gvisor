@@ -18,15 +18,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
-	"github.com/go-logr/logr"
-
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 )
 
 const (
