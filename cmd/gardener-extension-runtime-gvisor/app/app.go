@@ -32,6 +32,7 @@ import (
 
 	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck"
 )
 
 // NewControllerManagerCommand creates a new command that is used to start the Container runtime gvisor controller.
@@ -112,6 +113,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			if err := gvisorcontroller.AddToManager(mgr); err != nil {
 				return fmt.Errorf("could not add controllers to manager: %w", err)
+			}
+
+			if err := healthcheck.AddToManager(mgr); err != nil {
+				return fmt.Errorf("could not add health check controller to manager: %w", err)
 			}
 
 			if err := heartbeat.AddToManager(mgr); err != nil {
