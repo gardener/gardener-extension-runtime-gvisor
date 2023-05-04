@@ -28,6 +28,12 @@ spec:
       hostIPC: true
       nodeSelector:
 {{ toYaml .Values.config.nodeSelector | indent 8 }}
+      tolerations:
+        # Make sure containerd-gvisor gets scheduled on all nodes.
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
       containers:
       - name: container-runtime-gvisor-containerd
         image: {{ index .Values.images "runtime-gvisor-installation" }}
