@@ -1,7 +1,6 @@
 run:
   concurrency: 4
   deadline: 10m
-  go: "1.19"
 
 linters:
   disable:
