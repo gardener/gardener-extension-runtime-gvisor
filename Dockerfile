@@ -7,7 +7,7 @@ COPY . .
 RUN make install EFFECTIVE_VERSION=$EFFECTIVE_VERSION
 
 ############# binaries-installer
-FROM alpine:3.17.4 AS binaries-installer
+FROM alpine:3.18.2 AS binaries-installer
 
 COPY hack/ hack/
 COPY GVISOR_VERSION ./
@@ -22,7 +22,7 @@ COPY --from=builder /go/bin/gardener-extension-runtime-gvisor /gardener-extensio
 ENTRYPOINT ["/gardener-extension-runtime-gvisor"]
 
 ############# gardener-extension-runtime-gvisor-installation for the installation daemonSet
-FROM alpine:3.17.4 AS gardener-extension-runtime-gvisor-installation
+FROM alpine:3.18.2 AS gardener-extension-runtime-gvisor-installation
 
 COPY --from=binaries-installer /usr/local/bin/containerd-shim-runsc-v1 /var/content/containerd-shim-runsc-v1
 COPY --from=binaries-installer /usr/local/bin/runsc /var/content/runsc
