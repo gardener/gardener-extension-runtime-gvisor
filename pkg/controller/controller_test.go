@@ -118,7 +118,7 @@ var _ = Describe("Chart package test", func() {
 			chartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
 			// mockClient creates or update secret for managed resource "extension-runtime-gvisor"
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorSecretName, Namespace: namespaceName},
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 				Data:       map[string][]byte{charts.GVisorConfigKey: renderedChart.Manifest()},
 				Type:       corev1.SecretTypeOpaque,
 			}
@@ -129,7 +129,7 @@ var _ = Describe("Chart package test", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 				Spec: resourcesv1alpha1.ManagedResourceSpec{
 					SecretRefs: []corev1.LocalObjectReference{
-						{Name: controller.GVisorSecretName},
+						{Name: controller.GVisorManagedResourceName},
 					},
 				},
 			}
@@ -178,7 +178,7 @@ var _ = Describe("Chart package test", func() {
 			// chart renderer renders chart with path "gvisor"
 			mockChartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Any()).Return(renderedChart, nil)
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorSecretName, Namespace: namespaceName},
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 				Data:       map[string][]byte{charts.GVisorConfigKey: renderedChart.Manifest()},
 				Type:       corev1.SecretTypeOpaque,
 			}
@@ -189,7 +189,7 @@ var _ = Describe("Chart package test", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 				Spec: resourcesv1alpha1.ManagedResourceSpec{
 					SecretRefs: []corev1.LocalObjectReference{
-						{Name: controller.GVisorSecretName},
+						{Name: controller.GVisorManagedResourceName},
 					},
 				},
 			}
@@ -275,7 +275,7 @@ var _ = Describe("Chart package test", func() {
 
 			// delete secret of managed resource
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorSecretName, Namespace: namespaceName},
+				ObjectMeta: metav1.ObjectMeta{Name: controller.GVisorManagedResourceName, Namespace: namespaceName},
 			}
 			mockClient.EXPECT().Delete(ctx, secret).Return(nil)
 
