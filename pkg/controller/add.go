@@ -15,6 +15,8 @@
 package controller
 
 import (
+	"context"
+
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -40,22 +42,22 @@ type AddOptions struct {
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
-func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
+func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
 	scheme := mgr.GetScheme()
 	if err := resourcesv1alpha1.AddToScheme(scheme); err != nil {
 		return err
 	}
 
-	return containerruntime.Add(mgr, containerruntime.AddArgs{
-		Actuator:                  NewActuator(extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
+	return containerruntime.Add(ctx, mgr, containerruntime.AddArgs{
+		Actuator:                  NewActuator(mgr, extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
 		ControllerOptions:         opts.Controller,
-		Predicates:                containerruntime.DefaultPredicates(opts.IgnoreOperationAnnotation),
+		Predicates:                containerruntime.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:                      gvisor.Type,
 		IgnoreOperationAnnotation: opts.IgnoreOperationAnnotation,
 	})
 }
 
 // AddToManager adds a controller with the default Options.
-func AddToManager(mgr manager.Manager) error {
-	return AddToManagerWithOptions(mgr, DefaultAddOptions)
+func AddToManager(ctx context.Context, mgr manager.Manager) error {
+	return AddToManagerWithOptions(ctx, mgr, DefaultAddOptions)
 }

@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"fmt"
 	"net"
 	"regexp"
 	"strings"
@@ -40,7 +41,7 @@ func ValueExists(value string, list []string) bool {
 // MergeMaps takes two maps <a>, <b> and merges them. If <b> defines a value with a key
 // already existing in the <a> map, the <a> value for that key will be overwritten.
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	var values = map[string]interface{}{}
+	var values = make(map[string]interface{}, len(b))
 
 	for i, v := range b {
 		existing, ok := a[i]
@@ -73,7 +74,7 @@ func MergeStringMaps[T any](oldMap map[string]T, newMaps ...map[string]T) map[st
 	var out map[string]T
 
 	if oldMap != nil {
-		out = make(map[string]T)
+		out = make(map[string]T, len(oldMap))
 	}
 	for k, v := range oldMap {
 		out[k] = v
@@ -188,4 +189,13 @@ func IifString(condition bool, onTrue, onFalse string) string {
 		return onTrue
 	}
 	return onFalse
+}
+
+// InterfaceMapToStringMap translates map[string]interface{} to map[string]string.
+func InterfaceMapToStringMap(in map[string]interface{}) map[string]string {
+	m := make(map[string]string, len(in))
+	for k, v := range in {
+		m[k] = fmt.Sprint(v)
+	}
+	return m
 }

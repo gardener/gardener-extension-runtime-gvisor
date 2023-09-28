@@ -26,7 +26,6 @@ import (
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/timewindow"
-	versionutils "github.com/gardener/gardener/pkg/utils/version"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -64,10 +63,6 @@ func SetDefaults_Seed(obj *Seed) {
 		obj.Spec.Settings.VerticalPodAutoscaler = &SeedSettingVerticalPodAutoscaler{Enabled: true}
 	}
 
-	if obj.Spec.Settings.OwnerChecks == nil {
-		obj.Spec.Settings.OwnerChecks = &SeedSettingOwnerChecks{Enabled: false}
-	}
-
 	if obj.Spec.Settings.DependencyWatchdog == nil {
 		obj.Spec.Settings.DependencyWatchdog = &SeedSettingDependencyWatchdog{}
 	}
@@ -97,15 +92,6 @@ func SetDefaults_Shoot(obj *Shoot) {
 		obj.Spec.Kubernetes.KubeControllerManager = &KubeControllerManagerConfig{}
 	}
 
-	if obj.Spec.Kubernetes.EnableStaticTokenKubeconfig == nil {
-		// Error is ignored here because we cannot do anything meaningful with it - variable will default to "false".
-		if k8sLessThan126, _ := versionutils.CheckVersionMeetsConstraint(obj.Spec.Kubernetes.Version, "< 1.26"); k8sLessThan126 {
-			obj.Spec.Kubernetes.EnableStaticTokenKubeconfig = pointer.Bool(true)
-		} else {
-			obj.Spec.Kubernetes.EnableStaticTokenKubeconfig = pointer.Bool(false)
-		}
-	}
-
 	if obj.Spec.Purpose == nil {
 		p := ShootPurposeEvaluation
 		obj.Spec.Purpose = &p
@@ -132,19 +118,8 @@ func SetDefaults_Shoot(obj *Shoot) {
 	}
 
 	for i, worker := range obj.Spec.Provider.Workers {
-		kubernetesVersion := obj.Spec.Kubernetes.Version
-		if worker.Kubernetes != nil && worker.Kubernetes.Version != nil {
-			kubernetesVersion = *worker.Kubernetes.Version
-		}
-
 		if worker.Machine.Architecture == nil {
 			obj.Spec.Provider.Workers[i].Machine.Architecture = pointer.String(v1beta1constants.ArchitectureAMD64)
-		}
-
-		if k8sVersionGreaterOrEqualThan122, _ := versionutils.CompareVersions(kubernetesVersion, ">=", "1.22"); !k8sVersionGreaterOrEqualThan122 {
-			// Error is ignored here because we cannot do anything meaningful with it.
-			// k8sVersionGreaterOrEqualThan122 will default to `false`.
-			continue
 		}
 
 		if worker.CRI == nil {
@@ -171,12 +146,6 @@ func SetDefaults_Shoot(obj *Shoot) {
 
 	// these fields are relevant only for shoot with workers
 	if len(obj.Spec.Provider.Workers) > 0 {
-		// Errors are ignored here because we cannot do anything meaningful with them - variables will default to `false`.
-		k8sLess125, _ := versionutils.CheckVersionMeetsConstraint(obj.Spec.Kubernetes.Version, "< 1.25")
-		if obj.Spec.Kubernetes.AllowPrivilegedContainers == nil && k8sLess125 && !isPSPDisabled(obj) {
-			obj.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Bool(true)
-		}
-
 		if obj.Spec.Kubernetes.KubeAPIServer.DefaultNotReadyTolerationSeconds == nil {
 			obj.Spec.Kubernetes.KubeAPIServer.DefaultNotReadyTolerationSeconds = pointer.Int64(300)
 		}
@@ -186,14 +155,6 @@ func SetDefaults_Shoot(obj *Shoot) {
 
 		if obj.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize == nil {
 			obj.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = calculateDefaultNodeCIDRMaskSize(&obj.Spec)
-		}
-		k8sLess127, _ := versionutils.CheckVersionMeetsConstraint(obj.Spec.Kubernetes.Version, "< 1.27")
-		if obj.Spec.Kubernetes.KubeControllerManager.NodeMonitorGracePeriod == nil {
-			if k8sLess127 {
-				obj.Spec.Kubernetes.KubeControllerManager.NodeMonitorGracePeriod = &metav1.Duration{Duration: 2 * time.Minute}
-			} else {
-				obj.Spec.Kubernetes.KubeControllerManager.NodeMonitorGracePeriod = &metav1.Duration{Duration: 40 * time.Second}
-			}
 		}
 
 		if obj.Spec.Kubernetes.KubeScheduler == nil {
@@ -233,8 +194,7 @@ func SetDefaults_Shoot(obj *Shoot) {
 			obj.Spec.Kubernetes.Kubelet.FailSwapOn = pointer.Bool(true)
 		}
 
-		k8sGreaterEquals122, _ := versionutils.CheckVersionMeetsConstraint(obj.Spec.Kubernetes.Version, ">= 1.22")
-		if nodeSwapFeatureGateEnabled, ok := obj.Spec.Kubernetes.Kubelet.FeatureGates["NodeSwap"]; k8sGreaterEquals122 && ok && nodeSwapFeatureGateEnabled && !*obj.Spec.Kubernetes.Kubelet.FailSwapOn {
+		if nodeSwapFeatureGateEnabled, ok := obj.Spec.Kubernetes.Kubelet.FeatureGates["NodeSwap"]; ok && nodeSwapFeatureGateEnabled && !*obj.Spec.Kubernetes.Kubelet.FailSwapOn {
 			if obj.Spec.Kubernetes.Kubelet.MemorySwap == nil {
 				obj.Spec.Kubernetes.Kubelet.MemorySwap = &MemorySwapConfiguration{}
 			}
@@ -326,7 +286,7 @@ func SetDefaults_KubeAPIServerConfig(obj *KubeAPIServerConfig) {
 }
 
 // SetDefaults_KubeControllerManagerConfig sets default values for KubeControllerManagerConfig objects.
-func SetDefaults_KubeControllerManagerConfig(obj *KubeControllerManagerConfig) {}
+func SetDefaults_KubeControllerManagerConfig(_ *KubeControllerManagerConfig) {}
 
 // SetDefaults_Networking sets default values for Networking objects.
 func SetDefaults_Networking(obj *Networking) {
@@ -475,15 +435,4 @@ func addTolerations(tolerations *[]Toleration, additionalTolerations ...Tolerati
 		}
 		*tolerations = append(*tolerations, toleration)
 	}
-}
-
-func isPSPDisabled(shoot *Shoot) bool {
-	if shoot.Spec.Kubernetes.KubeAPIServer != nil {
-		for _, plugin := range shoot.Spec.Kubernetes.KubeAPIServer.AdmissionPlugins {
-			if plugin.Name == "PodSecurityPolicy" && pointer.BoolDeref(plugin.Disabled, false) {
-				return true
-			}
-		}
-	}
-	return false
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
+	mockmanager "github.com/gardener/gardener/pkg/mock/controller-runtime/manager"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,7 +38,6 @@ import (
 	"k8s.io/helm/pkg/manifest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
@@ -56,6 +56,7 @@ var _ = Describe("Chart package test", func() {
 			crf               *mockextensionscontroller.MockChartRendererFactory
 			mockChartRenderer *mockchartrenderer.MockInterface
 			mockClient        *mockclient.MockClient
+			mgr               *mockmanager.MockManager
 			a                 containerruntime.Actuator
 
 			ctx = context.TODO()
@@ -94,10 +95,9 @@ var _ = Describe("Chart package test", func() {
 			crf = mockextensionscontroller.NewMockChartRendererFactory(ctrl)
 			mockChartRenderer = mockchartrenderer.NewMockInterface(ctrl)
 			mockClient = mockclient.NewMockClient(ctrl)
-			a = controller.NewActuator(crf)
-
-			err := a.(inject.Client).InjectClient(mockClient)
-			Expect(err).To(Not(HaveOccurred()))
+			mgr = mockmanager.NewMockManager(ctrl)
+			mgr.EXPECT().GetClient().Return(mockClient)
+			a = controller.NewActuator(mgr, crf)
 		})
 
 		AfterEach(func() {

@@ -427,7 +427,10 @@ type DNS struct {
 
 // DNSProvider contains information about a DNS provider.
 type DNSProvider struct {
+	// TODO(timuthy): Remove this field with release v1.87.
+
 	// Domains contains information about which domains shall be included/excluded for this provider.
+	// Deprecated: This field is deprecated and will be removed in Gardener release v1.87.
 	// +optional
 	Domains *DNSIncludeExclude `json:"domains,omitempty" protobuf:"bytes,1,opt,name=domains"`
 	// Primary indicates that this DNSProvider is used for shoot related domains.
@@ -442,7 +445,10 @@ type DNSProvider struct {
 	// Type is the DNS provider type.
 	// +optional
 	Type *string `json:"type,omitempty" protobuf:"bytes,4,opt,name=type"`
+	// TODO(timuthy): Remove this field with release v1.87.
+
 	// Zones contains information about which hosted zones shall be included/excluded for this provider.
+	// Deprecated: This field is deprecated and will be removed in Gardener release v1.87.
 	// +optional
 	Zones *DNSIncludeExclude `json:"zones,omitempty" protobuf:"bytes,5,opt,name=zones"`
 }
@@ -530,8 +536,15 @@ type Kubernetes struct {
 	// Kubelet contains configuration settings for the kubelet.
 	// +optional
 	Kubelet *KubeletConfig `json:"kubelet,omitempty" protobuf:"bytes,7,opt,name=kubelet"`
+	// Note: Even though 'Version' is an optional field for users, we deliberately chose to not make it a pointer
+	// because the field is guaranteed to be not-empty after the admission plugin processed the shoot object.
+	// Thus, pointer handling for this field is not beneficial and would make things more cumbersome.
+
 	// Version is the semantic Kubernetes version to use for the Shoot cluster.
-	Version string `json:"version" protobuf:"bytes,8,opt,name=version"`
+	// Defaults to the highest supported minor and patch version given in the referenced cloud profile.
+	// The version can be omitted completely or partially specified, e.g. `<major>.<minor>`.
+	// +optional
+	Version string `json:"version,omitempty" protobuf:"bytes,8,opt,name=version"`
 	// VerticalPodAutoscaler contains the configuration flags for the Kubernetes vertical pod autoscaler.
 	// +optional
 	VerticalPodAutoscaler *VerticalPodAutoscaler `json:"verticalPodAutoscaler,omitempty" protobuf:"bytes,9,opt,name=verticalPodAutoscaler"`
@@ -774,7 +787,6 @@ type ServiceAccountConfig struct {
 	// AcceptedIssuers is an additional set of issuers that are used to determine which service account tokens are accepted.
 	// These values are not used to generate new service account tokens. Only useful when service account tokens are also
 	// issued by another external system or a change of the current issuer that is used for generating tokens is being performed.
-	// This field is only available for Kubernetes v1.22 or later.
 	// +optional
 	AcceptedIssuers []string `json:"acceptedIssuers,omitempty" protobuf:"bytes,5,opt,name=acceptedIssuers"`
 }
@@ -1336,7 +1348,7 @@ type Worker struct {
 	// +optional
 	CABundle *string `json:"caBundle,omitempty" protobuf:"bytes,2,opt,name=caBundle"`
 	// CRI contains configurations of CRI support of every machine in the worker pool.
-	// Defaults to a CRI with name `containerd` when the Kubernetes version of the `Shoot` is >= 1.22.
+	// Defaults to a CRI with name `containerd`.
 	// +optional
 	CRI *CRI `json:"cri,omitempty" protobuf:"bytes,3,opt,name=cri"`
 	// Kubernetes contains configuration for Kubernetes components related to this worker pool.
@@ -1349,14 +1361,18 @@ type Worker struct {
 	Name string `json:"name" protobuf:"bytes,6,opt,name=name"`
 	// Machine contains information about the machine type and image.
 	Machine Machine `json:"machine" protobuf:"bytes,7,opt,name=machine"`
-	// Maximum is the maximum number of VMs to create.
+	// Maximum is the maximum number of machines to create.
+	// This value is divided by the number of configured zones for a fair distribution.
 	Maximum int32 `json:"maximum" protobuf:"varint,8,opt,name=maximum"`
-	// Minimum is the minimum number of VMs to create.
+	// Minimum is the minimum number of machines to create.
+	// This value is divided by the number of configured zones for a fair distribution.
 	Minimum int32 `json:"minimum" protobuf:"varint,9,opt,name=minimum"`
-	// MaxSurge is maximum number of VMs that are created during an update.
+	// MaxSurge is maximum number of machines that are created during an update.
+	// This value is divided by the number of configured zones for a fair distribution.
 	// +optional
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,10,opt,name=maxSurge"`
-	// MaxUnavailable is the maximum number of VMs that can be unavailable during an update.
+	// MaxUnavailable is the maximum number of machines that can be unavailable during an update.
+	// This value is divided by the number of configured zones for a fair distribution.
 	// +optional
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty" protobuf:"bytes,11,opt,name=maxUnavailable"`
 	// ProviderConfig is the provider-specific configuration for this worker pool.
@@ -1384,7 +1400,7 @@ type Worker struct {
 	// MachineControllerManagerSettings contains configurations for different worker-pools. Eg. MachineDrainTimeout, MachineHealthTimeout.
 	// +optional
 	MachineControllerManagerSettings *MachineControllerManagerSettings `json:"machineControllerManager,omitempty" protobuf:"bytes,19,opt,name=machineControllerManager"`
-	// Sysctls is a map of kernel settings to apply on all VMs in this worker pool.
+	// Sysctls is a map of kernel settings to apply on all machines in this worker pool.
 	// +optional
 	Sysctls map[string]string `json:"sysctls,omitempty" protobuf:"bytes,20,rep,name=sysctls"`
 }
@@ -1634,6 +1650,9 @@ const (
 	// ShootCACertificateValiditiesAcceptable is a constant for a condition type indicating that the validities of all
 	// CA certificates is long enough.
 	ShootCACertificateValiditiesAcceptable ConditionType = "CACertificateValiditiesAcceptable"
+	// ShootCRDsWithProblematicConversionWebhooks is a constant for a condition type indicating that the Shoot cluster has
+	// CRDs with conversion webhooks and multiple stored versions which can break the reconciliation flow of the cluster.
+	ShootCRDsWithProblematicConversionWebhooks ConditionType = "CRDsWithProblematicConversionWebhooks"
 )
 
 // ShootPurpose is a type alias for string.
