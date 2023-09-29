@@ -28,10 +28,6 @@ import (
 )
 
 const (
-	// GVisorInstallationSecretName is the name of the secret ofr the installation.
-	GVisorInstallationSecretName = "extension-runtime-gvisor-installation"
-	// GVisorSecretName is the name of the secret.
-	GVisorSecretName = "extension-runtime-gvisor"
 	// GVisorInstallationManagedResourceName is the name of the managed resource installation.
 	GVisorInstallationManagedResourceName = "extension-runtime-gvisor-installation"
 	// GVisorManagedResourceName is the name of the managed resource.
@@ -63,7 +59,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		return err
 	}
 
-	installSecretName := fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)
+	installSecretName := fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
 	secretName, secret := managedresources.NewSecret(a.client, cr.Namespace, installSecretName, map[string][]byte{charts.GVisorConfigKey: gVisorInstallationChart}, true)
 	installMRName := fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
 	managedResource := managedresources.NewForShoot(a.client, cr.Namespace, installMRName, "extension-runtime-gvisor", false).WithSecretRef(secretName)

@@ -18,7 +18,6 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type actuator struct {
@@ -28,9 +27,9 @@ type actuator struct {
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled ContainerRuntime resources.
-func NewActuator(mgr manager.Manager, chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
+func NewActuator(c client.Client, chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
 	return &actuator{
 		chartRendererFactory: chartRendererFactory,
-		client:               mgr.GetClient(),
+		client:               c,
 	}
 }

@@ -14,7 +14,11 @@
 
 package gvisor
 
-import "path/filepath"
+import (
+	"path/filepath"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
+)
 
 const (
 	// Name is a constant to identify the gVisor extension
@@ -30,12 +34,8 @@ const (
 )
 
 var (
-	// ChartsPath is the path to the charts
-	ChartsPath = filepath.Join("charts")
-	// InternalChartsPath is the path to the internal charts
-	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 	// InstallationChartPath path for internal GVisor installation Chart
-	InstallationChartPath = filepath.Join(InternalChartsPath, "gvisor-installation")
+	InstallationChartPath = filepath.Join(charts.InternalChartsPath, "gvisor-installation")
 	// ChartPath is the path for internal GVisor Chart.
-	ChartPath = filepath.Join(InternalChartsPath, "gvisor")
+	ChartPath = filepath.Join(charts.InternalChartsPath, "gvisor")
 )
