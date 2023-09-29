@@ -15,20 +15,25 @@
 package imagevector
 
 import (
+	_ "embed"
+
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/version"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
-var imageVector imagevector.ImageVector
+var (
+	//go:embed images.yaml
+	ImagesYAML  string
+	imageVector imagevector.ImageVector
+)
 
 func init() {
 	var err error
 
-	imageVector, err = imagevector.Read([]byte(charts.ImagesYAML))
+	imageVector, err = imagevector.Read([]byte(ImagesYAML))
 	runtime.Must(err)
 	// image vector for components deployed by the gVisor extension
 	imageVector, err = imagevector.WithEnvOverride(imageVector)

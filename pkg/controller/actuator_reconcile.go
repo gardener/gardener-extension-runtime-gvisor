@@ -21,10 +21,8 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
+	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 )
@@ -55,17 +53,8 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		return err
 	}
 
-	gvisorSecret, gvisorSecretRefs := buildSecret(a.client, gVisorChart, cr.Namespace, GVisorSecretName)
-	if err := gvisorSecret.Reconcile(ctx); err != nil {
+	if err := managedresources.CreateForShoot(ctx, a.client, cr.Namespace, GVisorManagedResourceName, "extension-runtime-gvisor", false, map[string][]byte{charts.GVisorConfigKey: gVisorChart}); err != nil {
 		return err
-	}
-
-	if err := builder.
-		NewManagedResource(a.client).
-		WithNamespacedName(cr.Namespace, GVisorManagedResourceName).
-		WithSecretRefs(gvisorSecretRefs).
-		Reconcile(ctx); err != nil {
-		return fmt.Errorf("failed to create managed resource - prerequisite for the installation of gVisor, %w", err)
 	}
 
 	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace, "workerPoolName", cr.Spec.WorkerPool.Name)
@@ -74,33 +63,13 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 		return err
 	}
 
-	gVisorInstallationSecret, gVisorInstallationSecretRefs := buildSecret(a.client, gVisorInstallationChart, cr.Namespace, fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name))
-	if err := gVisorInstallationSecret.Reconcile(ctx); err != nil {
+	installSecretName := fmt.Sprintf("%s-%s", GVisorInstallationSecretName, cr.Spec.WorkerPool.Name)
+	secretName, secret := managedresources.NewSecret(a.client, cr.Namespace, installSecretName, map[string][]byte{charts.GVisorConfigKey: gVisorInstallationChart}, true)
+	installMRName := fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
+	managedResource := managedresources.NewForShoot(a.client, cr.Namespace, installMRName, "extension-runtime-gvisor", false).WithSecretRef(secretName)
+
+	if err := secret.Reconcile(ctx); err != nil {
 		return err
 	}
-
-	return builder.
-		NewManagedResource(a.client).
-		WithNamespacedName(cr.Namespace, GetGVisorInstallationManagedResourceName(cr)).
-		WithSecretRefs(gVisorInstallationSecretRefs).
-		Reconcile(ctx)
-}
-
-// GetGVisorInstallationManagedResourceName returns the name of the managed resource.
-func GetGVisorInstallationManagedResourceName(cr *extensionsv1alpha1.ContainerRuntime) string {
-	return fmt.Sprintf("%s-%s", GVisorInstallationManagedResourceName, cr.Spec.WorkerPool.Name)
-}
-
-func withLocalObjectRefs(refs ...string) []corev1.LocalObjectReference {
-	var localObjectRefs []corev1.LocalObjectReference
-	for _, ref := range refs {
-		localObjectRefs = append(localObjectRefs, corev1.LocalObjectReference{Name: ref})
-	}
-	return localObjectRefs
-}
-
-func buildSecret(cl client.Client, gVisorConfig []byte, namespace, secretName string) (*builder.Secret, []corev1.LocalObjectReference) {
-	return builder.NewSecret(cl).
-		WithKeyValues(map[string][]byte{charts.GVisorConfigKey: gVisorConfig}).
-		WithNamespacedName(namespace, secretName), withLocalObjectRefs(secretName)
+	return managedResource.Reconcile(ctx)
 }
