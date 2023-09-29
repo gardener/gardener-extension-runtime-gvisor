@@ -23,6 +23,6 @@ import (
 )
 
 // Migrate implements ContainerRuntime.Actuator.
-func (a *actuator) Migrate(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Migrate(_ context.Context, _ logr.Logger, _ *extensionsv1alpha1.ContainerRuntime, _ *extensionscontroller.Cluster) error {
 	return nil
 }

@@ -17,40 +17,20 @@ package controller
 import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type actuator struct {
 	chartRendererFactory extensionscontroller.ChartRendererFactory
-	restConfig           *rest.Config
 
-	client  client.Client
-	scheme  *runtime.Scheme
-	decoder runtime.Decoder
+	client client.Client
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled ContainerRuntime resources.
-func NewActuator(chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
+func NewActuator(mgr manager.Manager, chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
 	return &actuator{
 		chartRendererFactory: chartRendererFactory,
+		client:               mgr.GetClient(),
 	}
-}
-
-func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
-	a.scheme = scheme
-	a.decoder = serializer.NewCodecFactory(a.scheme).UniversalDecoder()
-	return nil
-}
-
-func (a *actuator) InjectClient(client client.Client) error {
-	a.client = client
-	return nil
-}
-
-func (a *actuator) InjectConfig(config *rest.Config) error {
-	a.restConfig = config
-	return nil
 }

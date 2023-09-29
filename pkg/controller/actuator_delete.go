@@ -29,7 +29,7 @@ import (
 )
 
 // Delete implements ContainerRuntime.Actuator.
-func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, _ *extensionscontroller.Cluster) error {
 	managedResourceName := GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
 	secretName := GVisorInstallationSecretName + "-" + cr.Spec.WorkerPool.Name
 	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managedResourceName", managedResourceName, "namespace", cr.Namespace, "containerRuntime", cr.Name)
