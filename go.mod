@@ -1,8 +1,6 @@
 module github.com/gardener/gardener-extension-runtime-gvisor
 
-go 1.21
-
-toolchain go1.21.0
+go 1.21.1
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
