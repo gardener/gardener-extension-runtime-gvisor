@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/manifest"
 
+	internalcharts "github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
@@ -72,7 +73,7 @@ var _ = Describe("Chart package test", func() {
 				"pspDisabled": true,
 			}
 
-			mockChartRenderer.EXPECT().Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
+			mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
 				ChartName: "test",
 				Manifests: []manifest.Manifest{
 					mkManifest(charts.GVisorConfigKey),
@@ -98,7 +99,7 @@ var _ = Describe("Chart package test", func() {
 				},
 			}
 
-			mockChartRenderer.EXPECT().Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
+			mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
 				ChartName: "test",
 				Manifests: []manifest.Manifest{
 					mkManifest(charts.GVisorConfigKey),
