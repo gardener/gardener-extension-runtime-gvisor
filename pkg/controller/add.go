@@ -49,7 +49,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 	}
 
 	return containerruntime.Add(ctx, mgr, containerruntime.AddArgs{
-		Actuator:                  NewActuator(mgr, extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
+		Actuator:                  NewActuator(mgr.GetClient(), extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
 		ControllerOptions:         opts.Controller,
 		Predicates:                containerruntime.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:                      gvisor.Type,

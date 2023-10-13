@@ -19,8 +19,9 @@ import (
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/imagevector"
 )
 
 // GVisorConfigKey is the key for the gVisor configuration.
@@ -49,7 +50,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		},
 	}
 
-	release, err := renderer.Render(gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gvisorChartValues)
+	release, err := renderer.RenderEmbeddedFS(charts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gvisorChartValues)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func RenderGVisorChart(renderer chartrenderer.Interface, pspDisabled bool) ([]by
 		"pspDisabled": pspDisabled,
 	}
 
-	release, err := renderer.Render(gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gvisorChartValues)
+	release, err := renderer.RenderEmbeddedFS(charts.InternalChart, gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gvisorChartValues)
 	if err != nil {
 		return nil, err
 	}

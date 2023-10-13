@@ -20,8 +20,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	utils "github.com/gardener/gardener/pkg/utils/managedresources"
-	"github.com/gardener/gardener/pkg/utils/managedresources/builder"
+	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -31,9 +30,8 @@ import (
 // Delete implements ContainerRuntime.Actuator.
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, _ *extensionscontroller.Cluster) error {
 	managedResourceName := GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
-	secretName := GVisorInstallationSecretName + "-" + cr.Spec.WorkerPool.Name
 	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managedResourceName", managedResourceName, "namespace", cr.Namespace, "containerRuntime", cr.Name)
-	if err := a.deleteManagedResource(ctx, cr.Namespace, managedResourceName, secretName); err != nil {
+	if err := a.deleteManagedResource(ctx, cr.Namespace, managedResourceName); err != nil {
 		return err
 	}
 
@@ -49,28 +47,18 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1
 	}
 	log.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managedResourceName", GVisorManagedResourceName)
 
-	return a.deleteManagedResource(ctx, cr.Namespace, GVisorManagedResourceName, GVisorSecretName)
+	return a.deleteManagedResource(ctx, cr.Namespace, GVisorManagedResourceName)
 }
 
-func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managedResourceName, secretName string) error {
-	if err := builder.
-		NewManagedResource(a.client).
-		WithNamespacedName(namespace, managedResourceName).
-		Delete(ctx); err != nil {
-		return err
-	}
-
-	if err := builder.
-		NewSecret(a.client).
-		WithNamespacedName(namespace, secretName).
-		Delete(ctx); err != nil {
+func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managedResourceName string) error {
+	if err := managedresources.Delete(ctx, a.client, namespace, managedResourceName, true); err != nil {
 		return err
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
-	return utils.WaitUntilDeleted(timeoutCtx, a.client, namespace, managedResourceName)
+	return managedresources.WaitUntilDeleted(timeoutCtx, a.client, namespace, managedResourceName)
 }
 
 func isGVisorInstallationRequired(name string, list *extensionsv1alpha1.ContainerRuntimeList) bool {

@@ -25,7 +25,6 @@ import (
 	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -41,10 +40,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		generalOpts = &controllercmd.GeneralOptions{}
 		restOpts    = &controllercmd.RESTOptions{}
 		mgrOpts     = &controllercmd.ManagerOptions{
-			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-			LeaderElection:             true,
-			LeaderElectionID:           controllercmd.LeaderElectionNameID(gvisor.Name),
-			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			LeaderElection:          true,
+			LeaderElectionID:        controllercmd.LeaderElectionNameID(gvisor.Name),
+			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
 		}
 		reconcileOpts = &controllercmd.ReconcilerOptions{
 			IgnoreOperationAnnotation: true,
@@ -94,8 +92,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			completedMgrOpts := mgrOpts.Completed().Options()
-			completedMgrOpts.ClientDisableCacheFor = []client.Object{
-				&corev1.Secret{}, // applied for ManagedResources
+			completedMgrOpts.Client = client.Options{
+				Cache: &client.CacheOptions{
+					DisableFor: []client.Object{
+						&corev1.Secret{}, // applied for ManagedResources
+					},
+				},
 			}
 
 			mgr, err := manager.New(restOpts.Completed().Config, completedMgrOpts)
