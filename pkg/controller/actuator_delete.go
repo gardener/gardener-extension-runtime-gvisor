@@ -69,3 +69,8 @@ func isGVisorInstallationRequired(name string, list *extensionsv1alpha1.Containe
 	}
 	return false
 }
+
+// ForceDelete implements ContainerRuntime.Actuator.
+func (a *actuator) ForceDelete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
+	return a.Delete(ctx, log, cr, cluster)
+}
