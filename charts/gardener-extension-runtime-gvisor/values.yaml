@@ -16,9 +16,6 @@ vpa:
   updatePolicy:
     updateMode: "Auto"
 
-leaderElection:
-  resourceLock: leases
-
 # settings for metrics, e.g. scraping by seed-prometheus
 metrics:
   enableScraping: true

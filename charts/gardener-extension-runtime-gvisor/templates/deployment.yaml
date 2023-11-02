@@ -36,7 +36,6 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
         - /gardener-extension-runtime-gvisor
-        - --leader-election-resource-lock={{ .Values.leaderElection.resourceLock }}
         - --heartbeat-namespace={{ .Release.Namespace }} 
         - --heartbeat-renew-interval-seconds={{ .Values.controllers.heartbeat.renewIntervalSeconds }} 
         - --max-concurrent-reconciles={{ .Values.controllers.concurrentSyncs }}
