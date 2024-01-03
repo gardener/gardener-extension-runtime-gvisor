@@ -69,9 +69,7 @@ var _ = Describe("Chart package test", func() {
 		})
 
 		It("Render Gvisor chart correctly", func() {
-			renderedValues := map[string]interface{}{
-				"pspDisabled": true,
-			}
+			renderedValues := map[string]interface{}{}
 
 			mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
 				ChartName: "test",
@@ -80,7 +78,7 @@ var _ = Describe("Chart package test", func() {
 				},
 			}, nil)
 
-			_, err := charts.RenderGVisorChart(mockChartRenderer, true)
+			_, err := charts.RenderGVisorChart(mockChartRenderer)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

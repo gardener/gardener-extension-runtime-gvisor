@@ -58,10 +58,8 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 }
 
 // RenderGVisorChart renders the gVisor chart
-func RenderGVisorChart(renderer chartrenderer.Interface, pspDisabled bool) ([]byte, error) {
-	gvisorChartValues := map[string]interface{}{
-		"pspDisabled": pspDisabled,
-	}
+func RenderGVisorChart(renderer chartrenderer.Interface) ([]byte, error) {
+	gvisorChartValues := map[string]interface{}{}
 
 	release, err := renderer.RenderEmbeddedFS(charts.InternalChart, gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gvisorChartValues)
 	if err != nil {
