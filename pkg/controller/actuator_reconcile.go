@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
@@ -43,8 +42,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 
 	log.Info("Preparing gVisor installation", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace)
 	// create MR containing the prerequisites for the installation DaemonSet
-	pspDisabled := v1beta1helper.IsPSPDisabled(cluster.Shoot)
-	gVisorChart, err := charts.RenderGVisorChart(chartRenderer, pspDisabled)
+	gVisorChart, err := charts.RenderGVisorChart(chartRenderer)
 	if err != nil {
 		return err
 	}
