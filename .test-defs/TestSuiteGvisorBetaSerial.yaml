@@ -14,7 +14,7 @@ spec:
   command: [bash, -c]
   args:
     - >-
-      go test -timeout=0 -mod=vendor ./test/integration/suites
+      go test -timeout=0 ./test/integration/suites
       --v -ginkgo.v -ginkgo.progress -ginkgo.no-color
       --report-file=$TM_EXPORT_PATH/report.json
       -kubecfg=$TM_KUBECONFIG_PATH/gardener.config
