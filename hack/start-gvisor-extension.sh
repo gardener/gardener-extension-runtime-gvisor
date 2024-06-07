@@ -37,8 +37,8 @@ echo "Using LD_FLAGS: $LD_FLAGS"
 echo "Ignoring operation annotation: $IGNORE_OPERATION_ANNOTATION"
 
 # contains common helper functions (needed: mktemp_kubeconfig() & cleanup_kubeconfig)
-source "$REPO_ROOT"/vendor/github.com/gardener/gardener/hack/local-development/common/helpers
-source "$REPO_ROOT"/vendor/github.com/gardener/gardener/hack/local-development/common/local-imagevector-overwrite
+source "${GARDENER_HACK_DIR}/local-development/common/helpers
+source "${GARDENER_HACK_DIR}/local-development/common/local-imagevector-overwrite
 
 # Begin script in case all parameters are correct
 kubeconfig="$(mktemp_kubeconfig)"
@@ -57,7 +57,6 @@ else
   IMAGEVECTOR_OVERWRITE="$file_imagevector_overwrite" \
   GO111MODULE=on \
       go run \
-        -mod=vendor \
         -ldflags "$LD_FLAGS" \
         "$DIRECTORY" \
         --ignore-operation-annotation="$IGNORE_OPERATION_ANNOTATION" \
