@@ -11,7 +11,7 @@ COPY . .
 RUN make install EFFECTIVE_VERSION=$EFFECTIVE_VERSION
 
 ############# binaries-installer
-FROM alpine:3.18.5 AS binaries-installer
+FROM alpine:3.18.6 AS binaries-installer
 
 COPY hack/ hack/
 COPY GVISOR_VERSION ./
