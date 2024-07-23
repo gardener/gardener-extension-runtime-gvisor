@@ -1,4 +1,16 @@
 gardener-extension-runtime-gvisor:
+  templates: 
+    helmcharts:
+    - &runtime-gvisor
+      name: runtime-gvisor
+      dir: charts/gardener-extension-runtime-gvisor
+      registry: europe-docker.pkg.dev/gardener-project/snapshots/charts/gardener/extensions
+      mappings:
+      - ref: ocm-resource:gardener-extension-runtime-gvisor.repository
+        attribute: image.repository
+      - ref: ocm-resource:gardener-extension-runtime-gvisor.tag
+        attribute: image.tag
+
   base_definition:
     traits:
       version:
@@ -46,6 +58,9 @@ gardener-extension-runtime-gvisor:
         draft_release: ~
         options:
           public_build_logs: true
+        publish:
+          helmcharts:
+          - *runtime-gvisor
     pull-request:
       traits:
         pull-request: ~
@@ -54,6 +69,9 @@ gardener-extension-runtime-gvisor:
              - repository: europe-docker.pkg.dev/gardener-project/releases
         options:
           public_build_logs: true
+        publish:
+          helmcharts:
+          - *runtime-gvisor
     release:
       traits:
         version:
@@ -78,3 +96,6 @@ gardener-extension-runtime-gvisor:
             gardener-extension-runtime-gvisor-installation:
               image: europe-docker.pkg.dev/gardener-project/releases/gardener/extensions/runtime-gvisor-installation
               tag_as_latest: true
+          helmcharts:
+          - <<: *runtime-gvisor
+            registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
