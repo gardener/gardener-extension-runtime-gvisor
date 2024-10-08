@@ -16,6 +16,7 @@ VERSION                     := $(shell cat "$(REPO_ROOT)/VERSION")
 EFFECTIVE_VERSION           := $(VERSION)-$(shell git rev-parse HEAD)
 LD_FLAGS_GENERATOR          := $(GARDENER_HACK_DIR)/get-build-ld-flags.sh
 IGNORE_OPERATION_ANNOTATION := true
+PLATFORM                    := linux/amd64
 
 ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
@@ -57,9 +58,9 @@ install-binaries:
 docker-login:
 	@gcloud auth activate-service-account --key-file .kube-secrets/gcr/gcr-readwrite.json
 
-.PHONY: docker-images
-docker-images:
-	@docker build \
+.PHONY: docker-image-runtime
+docker-image-runtime:
+	@docker buildx build --platform=$(PLATFORM) \
 		--build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) \
 		-t $(IMAGE_PREFIX)/$(NAME):$(EFFECTIVE_VERSION) \
 		-t $(IMAGE_PREFIX)/$(NAME):latest \
@@ -67,13 +68,19 @@ docker-images:
 		-m 6g \
 		--target $(EXTENSION_PREFIX)-$(NAME) \
 		.
-	@docker build \
+
+.PHONY: docker-image-installation
+docker-image-installation:
+	@docker buildx build --platform=$(PLATFORM) \
 		-t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):$(EFFECTIVE_VERSION) \
 		-t $(IMAGE_PREFIX)/$(NAME_INSTALLATION):latest \
 		-f Dockerfile \
 		-m 6g \
 		--target $(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
 		.
+
+.PHONY: docker-images
+docker-images: docker-image-installation docker-image-runtime
 
 #####################################################################
 # Rules for verification, formatting, linting, testing and cleaning #
