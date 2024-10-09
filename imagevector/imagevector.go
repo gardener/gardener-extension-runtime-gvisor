@@ -26,7 +26,7 @@ func init() {
 	imageVector, err = imagevector.Read([]byte(ImagesYAML))
 	runtime.Must(err)
 	// image vector for components deployed by the gVisor extension
-	imageVector, err = imagevector.WithEnvOverride(imageVector)
+	imageVector, err = imagevector.WithEnvOverride(imageVector, imagevector.OverrideEnv)
 	runtime.Must(err)
 
 	_, err = imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
@@ -48,11 +48,11 @@ func FindImage(name string) string {
 		tag        = version.Get().GitVersion
 	)
 	if image.Tag != nil {
-		repository = image.Repository
+		repository = *image.Repository
 		tag = *image.Tag
 	}
 	calculatedImage := imagevector.Image{
-		Repository: repository,
+		Repository: &repository,
 		Tag:        &tag,
 	}
 	return calculatedImage.String()
