@@ -13,9 +13,11 @@ import (
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/controller/heartbeat"
 	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/component-base/version/verflag"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -99,7 +101,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
-			reconcileOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.IgnoreOperationAnnotation)
+			reconcileOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.IgnoreOperationAnnotation, ptr.To(extensionsv1alpha1.ExtensionClassShoot))
 			gvisorCtrlOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.Controller)
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
