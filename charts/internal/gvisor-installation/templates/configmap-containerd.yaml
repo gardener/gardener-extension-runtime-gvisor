@@ -6,7 +6,7 @@ metadata:
 data:
   install-gvisor-containerd.sh: |-
     #!/bin/sh
-    BIN_TARGET_DIR="{{.Values.config.binFolder }}"
+    BIN_TARGET_DIR="{{ .Values.config.binFolder }}"
 
     mkdir -p "/var/host/$BIN_TARGET_DIR"
 
@@ -65,6 +65,19 @@ data:
     else
       echo "Containerd already configured for gvisor."
     fi
+
+    if ! grep -q plugins.\"io.containerd.grpc.v1.cri\".containerd.runtimes.runsc.options "$FILENAME"; then
+      cat <<EOF >> $FILENAME
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc.options]
+      TypeUrl = "io.containerd.runsc.v1.options"
+      ConfigPath = "/etc/containerd/runsc.toml"
+    EOF
+
+
+    cat <<EOF > /var/host/etc/containerd/runsc.toml
+    [runsc_config]
+    {{ .Values.config.additionalCapabilities | indent 2 }}
+    EOF
 
     echo "Task completed, sleeping ..."
     while true; do

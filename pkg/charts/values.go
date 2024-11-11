@@ -5,20 +5,53 @@
 package charts
 
 import (
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/chartrenderer"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"fmt"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
+
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/chartrenderer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	runtimeutils "k8s.io/apimachinery/pkg/util/runtime"
+
+	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
 )
 
 // GVisorConfigKey is the key for the gVisor configuration.
 const GVisorConfigKey = "config.yaml"
 
+var decoder runtime.Decoder
+
+func init() {
+	scheme := runtime.NewScheme()
+	runtimeutils.Must(gvisorconfiguration.AddToScheme(scheme))
+	decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+}
+
 // RenderGVisorInstallationChart renders the gVisor installation chart
 func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
+
+	providerConfig := &gvisorconfiguration.GvisorConfiguration{}
+	if cr.Spec.ProviderConfig != nil {
+		if _, _, err := decoder.Decode(cr.Spec.ProviderConfig.Raw, nil, providerConfig); err != nil {
+			return nil, fmt.Errorf("could not decode provider config: %w", err)
+		}
+	}
+
+	runscConfig := ""
+	if providerConfig.AdditionalCapabilities != nil {
+		if providerConfig.AdditionalCapabilities.CapabilityNetRaw != nil && *providerConfig.AdditionalCapabilities.CapabilityNetRaw {
+			runscConfig += "net-raw = \"true\"\n"
+		}
+		if providerConfig.AdditionalCapabilities.CapabilitySysAdmin != nil && *providerConfig.AdditionalCapabilities.CapabilitySysAdmin {
+			runscConfig += "sys-admin = \"true\"\n"
+		}
+	}
+
 	nodeSelectorValue := map[string]string{
 		extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
 	}
@@ -28,9 +61,10 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 	}
 
 	configChartValues := map[string]interface{}{
-		"binFolder":    cr.Spec.BinaryPath,
-		"nodeSelector": nodeSelectorValue,
-		"workergroup":  cr.Spec.WorkerPool.Name,
+		"binFolder":              cr.Spec.BinaryPath,
+		"nodeSelector":           nodeSelectorValue,
+		"workergroup":            cr.Spec.WorkerPool.Name,
+		"additionalCapabilities": runscConfig,
 	}
 
 	gvisorChartValues := map[string]interface{}{

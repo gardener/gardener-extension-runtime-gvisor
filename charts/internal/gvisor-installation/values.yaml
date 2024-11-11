@@ -7,3 +7,6 @@ config:
   nodeSelector:
     worker.gardener.cloud/cri-name: containerd
     worker.gardener.cloud/pool: gvisor-pool
+  additionalCapabilities: |
+    net-raw = "false"
+    sys_admin = "false"
