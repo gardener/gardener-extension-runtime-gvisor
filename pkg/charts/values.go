@@ -7,10 +7,6 @@ package charts
 import (
 	"fmt"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
-	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimeutils "k8s.io/apimachinery/pkg/util/runtime"
 
+	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
+	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
 	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
+	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
 // GVisorConfigKey is the key for the gVisor configuration.
@@ -35,7 +34,7 @@ func init() {
 // RenderGVisorInstallationChart renders the gVisor installation chart
 func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
 
-	providerConfig := &gvisorconfiguration.GvisorConfiguration{}
+	providerConfig := &gvisorconfiguration.GVisorConfiguration{}
 	if cr.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cr.Spec.ProviderConfig.Raw, nil, providerConfig); err != nil {
 			return nil, fmt.Errorf("could not decode provider config: %w", err)

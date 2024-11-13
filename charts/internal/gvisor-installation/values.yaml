@@ -9,4 +9,4 @@ config:
     worker.gardener.cloud/pool: gvisor-pool
   additionalCapabilities: |
     net-raw = "false"
-    sys_admin = "false"
+    sys-admin = "false"

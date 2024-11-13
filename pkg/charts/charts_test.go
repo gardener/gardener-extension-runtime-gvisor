@@ -15,6 +15,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	internalcharts "github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
@@ -25,8 +26,9 @@ import (
 var _ = Describe("Chart package test", func() {
 	Describe("#RenderGvisorChart", func() {
 		var (
-			ctrl              *gomock.Controller
-			mockChartRenderer *mockchartrenderer.MockInterface
+			ctrl               *gomock.Controller
+			mockChartRenderer  *mockchartrenderer.MockInterface
+			expectedHelmValues map[string]interface{}
 
 			testManifestContent = "test-content"
 			mkManifest          = func(name string) releaseutil.Manifest {
@@ -44,7 +46,8 @@ var _ = Describe("Chart package test", func() {
 						},
 					},
 					DefaultSpec: extensionsv1alpha1.DefaultSpec{
-						Type: "type"},
+						Type: "type",
+					},
 				},
 			}
 		)
@@ -52,6 +55,21 @@ var _ = Describe("Chart package test", func() {
 		BeforeEach(func() {
 			ctrl = gomock.NewController(GinkgoT())
 			mockChartRenderer = mockchartrenderer.NewMockInterface(ctrl)
+			expectedHelmValues = map[string]interface{}{
+				"images": map[string]string{
+					"runtime-gvisor-installation": imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
+				},
+				"config": map[string]interface{}{
+					"nodeSelector": map[string]string{
+						extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
+						"worker.gardener.cloud/pool":          "gvisor-pool",
+					},
+					"binFolder":              "/path/test",
+					"workergroup":            workerGroup,
+					"additionalCapabilities": "",
+				},
+			}
+
 		})
 
 		AfterEach(func() {
@@ -72,22 +90,8 @@ var _ = Describe("Chart package test", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("Render Gvisor installation chart correctly", func() {
-			renderedValues := map[string]interface{}{
-				"images": map[string]string{
-					"runtime-gvisor-installation": imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
-				},
-				"config": map[string]interface{}{
-					"nodeSelector": map[string]string{
-						extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
-						"worker.gardener.cloud/pool":          "gvisor-pool",
-					},
-					"binFolder":   "/path/test",
-					"workergroup": workerGroup,
-				},
-			}
-
-			mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
+		It("Render Gvisor installation chart correctly with default settings", func() {
+			mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(expectedHelmValues)).Return(&chartrenderer.RenderedChart{
 				ChartName: "test",
 				Manifests: []releaseutil.Manifest{
 					mkManifest(charts.GVisorConfigKey),
@@ -96,6 +100,55 @@ var _ = Describe("Chart package test", func() {
 
 			_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Render Gvisor installation chart correctly when provider config is provided", func() {
+			providerConfigBase := `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+kind: OperatingSystemConfiguration`
+
+			type ProviderConfigTestCase struct {
+				providerConfig       string
+				expectedCapabilities string
+			}
+
+			testCases := map[string]ProviderConfigTestCase{
+				"no-capabilities": {providerConfig: providerConfigBase,
+					expectedCapabilities: ""},
+				"only-net-raw": {providerConfig: providerConfigBase + `
+additionalCapabilities:
+  NET_RAW: true`,
+					expectedCapabilities: "net-raw = \"true\"\n"},
+				"only-sys-admin": {providerConfig: providerConfigBase + `
+additionalCapabilities:
+  SYS_ADMIN: true`,
+					expectedCapabilities: "sys-admin = \"true\"\n"},
+				"all-capabilities": {providerConfig: providerConfigBase + `
+additionalCapabilities:
+  SYS_ADMIN: true
+  NET_RAW: true`,
+					expectedCapabilities: "net-raw = \"true\"\nsys-admin = \"true\"\n"},
+			}
+
+			for testName, testCase := range testCases {
+
+				// set provider config
+				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(testCase.providerConfig)}
+
+				// provider config capabilities should be rendered into values
+				expectedHelmValues["config"].(map[string]interface{})["additionalCapabilities"] = testCase.expectedCapabilities
+				// print current test case name in case of failure
+				fmt.Println("Testing case: ", testName)
+
+				mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(expectedHelmValues)).Return(&chartrenderer.RenderedChart{
+					ChartName: "test",
+					Manifests: []releaseutil.Manifest{
+						mkManifest(charts.GVisorConfigKey),
+					},
+				}, nil)
+
+				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+				Expect(err).NotTo(HaveOccurred())
+			}
 		})
 	})
 })
