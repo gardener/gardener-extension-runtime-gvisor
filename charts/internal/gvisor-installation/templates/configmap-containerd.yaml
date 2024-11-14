@@ -7,6 +7,7 @@ data:
   install-gvisor-containerd.sh: |-
     #!/bin/sh
     BIN_TARGET_DIR="{{ .Values.config.binFolder }}"
+    RESTART_CONTAINERD=false
 
     mkdir -p "/var/host/$BIN_TARGET_DIR"
 
@@ -60,8 +61,8 @@ data:
     EOF
       fi
 
-      echo "Restarting containerd"
-      chroot /var/host bash -c "systemctl restart containerd"
+      # restart containerd as no gvisor runtime was configured before
+      RESTART_CONTAINERD=true
     else
       echo "Containerd already configured for gvisor."
     fi
@@ -72,12 +73,34 @@ data:
       TypeUrl = "io.containerd.runsc.v1.options"
       ConfigPath = "/etc/containerd/runsc.toml"
     EOF
+    RESTART_CONTAINERD=true
+    fi
 
+    if [ ! -f /var/host/etc/containerd/runsc.toml ]; then
+    cat <<EOF > /var/host/etc/containerd/runsc.toml
+    [runsc_config]
+    EOF
+    fi
 
+    RUNSC_TOML_MD5SUM_INITIAL=$(md5sum /var/host/etc/containerd/runsc.toml)
+     
     cat <<EOF > /var/host/etc/containerd/runsc.toml
     [runsc_config]
 {{ .Values.config.additionalCapabilities | indent 6 }}
     EOF
+
+
+    # Restart containerd if runsc.toml was updated
+    RUNSC_TOML_MD5SUM_FINAL=$(md5sum /var/host/etc/containerd/runsc.toml)
+    if [ "$RUNSC_TOML_MD5SUM_INITIAL" != "$RUNSC_TOML_MD5SUM_FINAL" ]; then
+      echo "runsc.toml updated."
+      RESTART_CONTAINERD=true
+    fi
+
+
+    if [ "$RESTART_CONTAINERD" = true ]; then
+      echo "Restarting containerd."
+      chroot /var/host bash -c "systemctl restart containerd"
     fi
 
     echo "Task completed, sleeping ..."
