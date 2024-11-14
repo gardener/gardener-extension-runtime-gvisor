@@ -104,7 +104,7 @@ var _ = Describe("Chart package test", func() {
 
 		It("Render Gvisor installation chart correctly when provider config is provided", func() {
 			providerConfigBase := `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: OperatingSystemConfiguration`
+kind: GVisorConfiguration`
 
 			type ProviderConfigTestCase struct {
 				providerConfig       string
