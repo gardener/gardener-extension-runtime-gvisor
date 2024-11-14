@@ -12,7 +12,7 @@ Resource Types:
 <ul><li>
 <a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>
 </li><li>
-<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GvisorConfiguration">GvisorConfiguration</a>
+<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration</a>
 </li></ul>
 <h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration
 </h3>
@@ -75,9 +75,10 @@ github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1.HealthCheckConf
 </tr>
 </tbody>
 </table>
-<h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GvisorConfiguration">GvisorConfiguration
+<h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration
 </h3>
 <p>
+<p>GVisorConfiguration defines the configuration for the GVisor runtime extension.</p>
 </p>
 <table>
 <thead>
@@ -102,7 +103,7 @@ gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
 <code>kind</code></br>
 string
 </td>
-<td><code>GvisorConfiguration</code></td>
+<td><code>GVisorConfiguration</code></td>
 </tr>
 <tr>
 <td>
@@ -124,10 +125,10 @@ GVisorAdditionalCapabilities
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GvisorConfiguration">GvisorConfiguration</a>)
+<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration</a>)
 </p>
 <p>
-<p>List of capabilities that can be granted to GVisor containers.</p>
+<p>GVisorAdditionalCapabilities is the list of capabilities that can be granted to GVisor containers.</p>
 </p>
 <table>
 <thead>
@@ -146,6 +147,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
+<p>Allows the process to bind to any address within the available namespaces</p>
 </td>
 </tr>
 <tr>
@@ -157,6 +159,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
+<p>Grants all Capabilities to the process</p>
 </td>
 </tr>
 </tbody>
