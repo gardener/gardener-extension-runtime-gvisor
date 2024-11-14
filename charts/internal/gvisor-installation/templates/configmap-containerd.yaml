@@ -78,6 +78,7 @@ data:
     [runsc_config]
 {{ .Values.config.additionalCapabilities | indent 6 }}
     EOF
+    fi
 
     echo "Task completed, sleeping ..."
     while true; do
