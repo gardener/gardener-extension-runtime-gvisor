@@ -1,0 +1,22 @@
+kind: Shoot
+apiVersion: core.gardener.cloud/v1beta1
+metadata:
+  name: gvisor-shoot
+  namespace: garden-local
+spec:
+...
+  provider:
+    workers:
+      - name: worker-xyz
+...
+        cri:
+          name: containerd
+          containerRuntimes:
+            - type: gvisor
+              providerConfig:
+                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+                kind: GVisorConfiguration
+                configFlags:
+                  "net-raw": "true"
+...
+

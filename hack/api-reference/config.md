@@ -11,6 +11,8 @@
 Resource Types:
 <ul><li>
 <a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>
+</li><li>
+<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration</a>
 </li></ul>
 <h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration
 </h3>
@@ -69,6 +71,50 @@ github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1.HealthCheckConf
 <td>
 <em>(Optional)</em>
 <p>HealthCheckConfig is the config for the health check controller</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration
+</h3>
+<p>
+<p>GVisorConfiguration defines the configuration for the gVisor runtime extension.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>GVisorConfiguration</code></td>
+</tr>
+<tr>
+<td>
+<code>configFlags</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ConfigFlags is a map of additional flags that are passed to the runsc binary used by gVisor.</p>
 </td>
 </tr>
 </tbody>
