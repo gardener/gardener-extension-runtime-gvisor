@@ -46,7 +46,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		for key, value := range *providerConfig.ConfigFlags {
 			// the API allows to set arbitrary flags, but we only allow the following flags for now
 			// A list of all supported flags can be found here: https://github.com/google/gvisor/blob/master/runsc/config/flags.go
-			if key == "net-raw" && value == "true" {
+			if key == "net-raw" && (value == "true" || value == "false") {
 				runscConfig += fmt.Sprintf("%s = \"%s\"\n", key, value)
 			}
 
