@@ -37,7 +37,7 @@ spec:
     ...
 ```
 
-GVisor van be configured to run with additional linux capabilities by adding them to the `additionalCapabilities` field in the providerConfig:
+GVisor van be configured to run with additional linux capabilities by adding them to the `configFlags` field in the providerConfig:
 
 ```yaml
 ...
@@ -45,9 +45,8 @@ GVisor van be configured to run with additional linux capabilities by adding the
               providerConfig:
                 apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
-                additionalCapabilities:
-                  SYS_ADMIN: true
-                  NET_RAW: true
+                configFlags:
+                  "net-raw" "true"
                   ...
 ...
 ```

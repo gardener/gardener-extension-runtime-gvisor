@@ -86,7 +86,7 @@ data:
      
     cat <<EOF > /var/host/etc/containerd/runsc.toml
     [runsc_config]
-{{ .Values.config.additionalCapabilities | indent 6 }}
+{{ .Values.config.configFlags | indent 6 }}
     EOF
 
 

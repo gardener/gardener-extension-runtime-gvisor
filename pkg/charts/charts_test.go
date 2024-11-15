@@ -64,9 +64,9 @@ var _ = Describe("Chart package test", func() {
 						extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
 						"worker.gardener.cloud/pool":          "gvisor-pool",
 					},
-					"binFolder":              "/path/test",
-					"workergroup":            workerGroup,
-					"additionalCapabilities": "",
+					"binFolder":   "/path/test",
+					"workergroup": workerGroup,
+					"configFlags": "",
 				},
 			}
 
@@ -126,7 +126,7 @@ configFlags:
 				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(testCase.providerConfig)}
 
 				// provider config capabilities should be rendered into values
-				expectedHelmValues["config"].(map[string]interface{})["additionalCapabilities"] = testCase.expectedConfigFlags
+				expectedHelmValues["config"].(map[string]interface{})["configFlags"] = testCase.expectedConfigFlags
 				// print current test case name in case of failure
 				fmt.Println("Testing case: ", testName)
 

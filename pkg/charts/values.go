@@ -62,10 +62,10 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 	}
 
 	configChartValues := map[string]interface{}{
-		"binFolder":              cr.Spec.BinaryPath,
-		"nodeSelector":           nodeSelectorValue,
-		"workergroup":            cr.Spec.WorkerPool.Name,
-		"additionalCapabilities": runscConfig,
+		"binFolder":    cr.Spec.BinaryPath,
+		"nodeSelector": nodeSelectorValue,
+		"workergroup":  cr.Spec.WorkerPool.Name,
+		"configFlags":  runscConfig,
 	}
 
 	gvisorChartValues := map[string]interface{}{
