@@ -107,26 +107,17 @@ var _ = Describe("Chart package test", func() {
 kind: GVisorConfiguration`
 
 			type ProviderConfigTestCase struct {
-				providerConfig       string
-				expectedCapabilities string
+				providerConfig      string
+				expectedConfigFlags string
 			}
 
 			testCases := map[string]ProviderConfigTestCase{
-				"no-capabilities": {providerConfig: providerConfigBase,
-					expectedCapabilities: ""},
-				"only-net-raw": {providerConfig: providerConfigBase + `
-additionalCapabilities:
-  NET_RAW: true`,
-					expectedCapabilities: "net-raw = \"true\"\n"},
-				"only-sys-admin": {providerConfig: providerConfigBase + `
-additionalCapabilities:
-  SYS_ADMIN: true`,
-					expectedCapabilities: "sys-admin = \"true\"\n"},
-				"all-capabilities": {providerConfig: providerConfigBase + `
-additionalCapabilities:
-  SYS_ADMIN: true
-  NET_RAW: true`,
-					expectedCapabilities: "net-raw = \"true\"\nsys-admin = \"true\"\n"},
+				"no-flags": {providerConfig: providerConfigBase,
+					expectedConfigFlags: ""},
+				"all-flags": {providerConfig: providerConfigBase + `
+configFlags:
+  "net-raw": "true"`,
+					expectedConfigFlags: "net-raw = \"true\"\n"},
 			}
 
 			for testName, testCase := range testCases {
@@ -135,7 +126,7 @@ additionalCapabilities:
 				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(testCase.providerConfig)}
 
 				// provider config capabilities should be rendered into values
-				expectedHelmValues["config"].(map[string]interface{})["additionalCapabilities"] = testCase.expectedCapabilities
+				expectedHelmValues["config"].(map[string]interface{})["additionalCapabilities"] = testCase.expectedConfigFlags
 				// print current test case name in case of failure
 				fmt.Println("Testing case: ", testName)
 

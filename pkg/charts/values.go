@@ -42,12 +42,14 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 	}
 
 	runscConfig := ""
-	if providerConfig.AdditionalCapabilities != nil {
-		if providerConfig.AdditionalCapabilities.CapabilityNetRaw != nil && *providerConfig.AdditionalCapabilities.CapabilityNetRaw {
-			runscConfig += "net-raw = \"true\"\n"
-		}
-		if providerConfig.AdditionalCapabilities.CapabilitySysAdmin != nil && *providerConfig.AdditionalCapabilities.CapabilitySysAdmin {
-			runscConfig += "sys-admin = \"true\"\n"
+	if providerConfig.ConfigFlags != nil && len(*providerConfig.ConfigFlags) > 0 {
+		for key, value := range *providerConfig.ConfigFlags {
+			// the API allows to set arbitrary flags, but we only allow the following flags for now
+			// A list of all supported flags can be found here: https://github.com/google/gvisor/blob/master/runsc/config/flags.go
+			if key == "net-raw" && value == "true" {
+				runscConfig += fmt.Sprintf("%s = \"%s\"\n", key, value)
+			}
+
 		}
 	}
 

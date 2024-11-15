@@ -16,8 +16,7 @@ spec:
               providerConfig:
                 apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
-                additionalCapabilities:
-                  SYS_ADMIN: true
-                  NET_RAW: true
+                configFlags:
+                  "net-raw": "true"
 ...
 

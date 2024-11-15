@@ -73,11 +73,11 @@ data:
       TypeUrl = "io.containerd.runsc.v1.options"
       ConfigPath = "/etc/containerd/runsc.toml"
     EOF
-    RESTART_CONTAINERD=true
+      RESTART_CONTAINERD=true
     fi
 
     if [ ! -f /var/host/etc/containerd/runsc.toml ]; then
-    cat <<EOF > /var/host/etc/containerd/runsc.toml
+      cat <<EOF > /var/host/etc/containerd/runsc.toml
     [runsc_config]
     EOF
     fi
@@ -105,5 +105,5 @@ data:
 
     echo "Task completed, sleeping ..."
     while true; do
-    	sleep 3600;
+      sleep 3600;
     done

@@ -78,7 +78,7 @@ github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1.HealthCheckConf
 <h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration
 </h3>
 <p>
-<p>GVisorConfiguration defines the configuration for the GVisor runtime extension.</p>
+<p>GVisorConfiguration defines the configuration for the gVisor runtime extension.</p>
 </p>
 <table>
 <thead>
@@ -107,59 +107,14 @@ string
 </tr>
 <tr>
 <td>
-<code>additionalCapabilities</code></br>
+<code>configFlags</code></br>
 <em>
-<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorAdditionalCapabilities">
-GVisorAdditionalCapabilities
-</a>
+map[string]string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Capabilities to the granted to GVisor containers.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorAdditionalCapabilities">GVisorAdditionalCapabilities
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration</a>)
-</p>
-<p>
-<p>GVisorAdditionalCapabilities is the list of capabilities that can be granted to GVisor containers.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>NET_RAW</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Allows the process to bind to any address within the available namespaces</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>SYS_ADMIN</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Grants all Capabilities to the process</p>
+<p>ConfigFlags is a map of additional flags that are passed to the runsc binary used by gVisor.</p>
 </td>
 </tr>
 </tbody>
