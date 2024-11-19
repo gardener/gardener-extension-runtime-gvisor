@@ -115,19 +115,12 @@ generate: $(VGOPATH) $(CONTROLLER_GEN) $(GEN_CRD_API_REFERENCE_DOCS) $(HELM) $(M
 format: $(GOIMPORTS) $(GOIMPORTSREVISER)
 	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg
 
-# TODO(MrBatschner): Remove once this extension is revendored against g/g >= 1.106
-TOOLS_PKG_PATH := $(shell go list -tags tools -f '{{ .Dir }}' github.com/gardener/gardener/hack/tools 2>/dev/null)
-.PHONY: adjust-install-gosec.sh
-adjust-install-gosec.sh:
-	@chmod +xw $(TOOLS_PKG_PATH)/install-gosec.sh
-
-
 .PHONY: sast
-sast: adjust-install-gosec.sh $(GOSEC)
+sast: $(GOSEC)
 	@./hack/sast.sh
 
 .PHONY: sast-report
-sast-report: adjust-install-gosec.sh $(GOSEC)
+sast-report: $(GOSEC)
 	@./hack/sast.sh --gosec-report true
 
 .PHONY: test
