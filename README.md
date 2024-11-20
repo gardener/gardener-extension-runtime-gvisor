@@ -37,7 +37,7 @@ spec:
     ...
 ```
 
-GVisor van be configured to run with additional linux capabilities by adding them to the `configFlags` field in the providerConfig:
+GVisor can be configured with additional configuration flags by adding them to the `configFlags` field in the providerConfig. Right now we only allow the `"net-raw"` flag to be set. All other flags are ignored.
 
 ```yaml
 ...
@@ -62,6 +62,11 @@ metadata:
 spec:
   binaryPath: /var/bin/containerruntimes
   type: gvisor
+  providerConfig:
+    apiVersion: gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
+    configFlags:
+      net-raw: "true"
+    kind: GVisorConfiguration
   workerPool:
     name: worker-ubuntu
     selector:
