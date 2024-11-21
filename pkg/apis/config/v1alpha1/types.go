@@ -4,23 +4,16 @@
 
 package v1alpha1
 
-import (
-	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
-)
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ControllerConfiguration defines the configuration for the GVisor runtime extension.
-type ControllerConfiguration struct {
+// GVisorConfiguration defines the configuration for the gVisor runtime extension.
+type GVisorConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
-	// ClientConnection specifies the kubeconfig file and client connection
-	// settings for the proxy server to use when communicating with the apiserver.
+
+	// ConfigFlags is a map of additional flags that are passed to the runsc binary used by gVisor.
 	// +optional
-	ClientConnection *componentbaseconfigv1alpha1.ClientConnectionConfiguration `json:"clientConnection,omitempty"`
-	// HealthCheckConfig is the config for the health check controller
-	// +optional
-	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
+	ConfigFlags *map[string]string `json:"configFlags,omitempty"`
 }

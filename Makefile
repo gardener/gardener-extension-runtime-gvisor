@@ -25,7 +25,7 @@ endif
 LD_FLAGS := $(shell chmod +x $(LD_FLAGS_GENERATOR) && EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(LD_FLAGS_GENERATOR) k8s.io/component-base $(REPO_ROOT)/VERSION $(EXTENSION_PREFIX))
 
 ### GVisor versions
-# - https://github.com/google/gvisor/releases (not all Github tags are available in the registry)
+# - https://github.com/google/gvisor/tags (not all Github tags are available in the registry)
 # - https://gvisor.dev/docs/user_guide/install/
 # To update the runsc + shim binary:
 #  1) Download latest: https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc
