@@ -31,11 +31,9 @@ gardener-extension-runtime-gvisor:
             - name: 'cloud.gardener.cnudie/responsibles'
               value:
               - type: 'githubUser'
-                username: 'marwinski'
-              - type: 'githubUser'
                 username: 'MrBatschner'
               - type: 'githubUser'
-                username: 'danielfoehrKn'
+                username: 'Roncossek'
           gardener-extension-runtime-gvisor-installation:
             image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/extensions/runtime-gvisor-installation
             dockerfile: 'Dockerfile'
@@ -44,11 +42,9 @@ gardener-extension-runtime-gvisor:
             - name: 'cloud.gardener.cnudie/responsibles'
               value:
               - type: 'githubUser'
-                username: 'marwinski'
-              - type: 'githubUser'
                 username: 'MrBatschner'
               - type: 'githubUser'
-                username: 'danielfoehrKn'
+                username: 'Roncossek'
   jobs:
     head-update:
       traits:
