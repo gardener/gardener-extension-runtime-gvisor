@@ -38,7 +38,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 		return err
 	}
 
-	return containerruntime.Add(ctx, mgr, containerruntime.AddArgs{
+	return containerruntime.Add(mgr, containerruntime.AddArgs{
 		Actuator:                  NewActuator(mgr.GetClient(), extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
 		ControllerOptions:         opts.Controller,
 		Predicates:                containerruntime.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
