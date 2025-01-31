@@ -20,6 +20,7 @@ import (
 	g "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -233,6 +234,9 @@ func deployGVisorPod(ctx context.Context, c client.Client) (*corev1.Pod, error) 
 					Command: []string{
 						"sleep",
 						"10000000",
+					},
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: ptr.To(false),
 					},
 				},
 			},
