@@ -14,6 +14,7 @@ import (
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	kubernetesclient "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/test/framework"
 	"github.com/onsi/ginkgo/v2"
@@ -105,10 +106,9 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		g.Expect(err).ToNot(g.HaveOccurred())
 
 		// check kernel startup logs
-		reader, err := framework.NewPodExecutor(f.ShootClient).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, "dmesg | grep -i -c gVisor")
+		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, "dmesg | grep -i -c gVisor")
 		g.Expect(err).ToNot(g.HaveOccurred())
-
-		response, err := io.ReadAll(reader)
+		response, err := io.ReadAll(stdout)
 		g.Expect(err).ToNot(g.HaveOccurred())
 		g.Expect(response).ToNot(g.BeNil())
 		g.Expect(string(response)).To(g.Equal(fmt.Sprintf("%s\n", "1")))
