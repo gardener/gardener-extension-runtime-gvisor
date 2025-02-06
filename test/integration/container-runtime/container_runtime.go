@@ -109,7 +109,6 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		g.Expect(err).ToNot(g.HaveOccurred())
 		response, err := io.ReadAll(stdout)
 		g.Expect(err).ToNot(g.HaveOccurred())
-		g.Expect(err).ToNot(g.HaveOccurred())
 		g.Expect(response).ToNot(g.BeNil())
 		g.Expect(string(response)).To(g.Equal(fmt.Sprintf("%s\n", "1")))
 
