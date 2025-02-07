@@ -167,7 +167,7 @@ if __name__ == "__main__":
         pr_title = f"Bump gVisor binaries to {upstream_version}"
         pr_body = f"""**What this PR does / why we need it**:
 
-Bumps the version of the included gVisor binary to {upstream_version}
+Bumps the version of the included gVisor binaries to {upstream_version}.
 
 **Which issue(s) this PR fixes**:
 
