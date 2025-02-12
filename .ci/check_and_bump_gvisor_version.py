@@ -10,7 +10,6 @@ import urllib3
 
 import ci.util
 import ccc.github
-from model.github import GithubConfig
 
 import gitutil
 
@@ -40,13 +39,13 @@ def get_current_version(repo_root: str) -> str:
             return line
 
 
-def set_current_version(repo_root: str, version: str) -> str:
+def set_current_version(repo_root: str, version: str):
     version_file = os.path.sep.join([repo_root, "GVISOR_VERSION"])
     with open(version_file, "w") as f:
         f.writelines([f"{version}\n"])
 
 
-def get_upstream_version_from_tags(organization: str, repository: str):
+def get_upstream_version_from_tags(organization: str, repository: str) -> str:
     api_root = 'api.github.com'
     url = f"https://{api_root}/repos/{organization}/{repository}/tags"
 
@@ -68,7 +67,7 @@ def get_upstream_version_from_tags(organization: str, repository: str):
     return releases[0]
 
 
-def get_git_helper(owner: str, repository:str, github_repo_url: str, repo_dir: str) -> tuple[GithubConfig, str]:
+def get_git_helper(owner: str, repository:str, github_repo_url: str, repo_dir: str) -> gitutil.GitHelper:
     try:
         github_repo_path = ci.util.check_env('SOURCE_GITHUB_REPO_OWNER_AND_NAME')
     except ci.util.Failure:
@@ -121,7 +120,7 @@ def commit_and_push_to_branch(git_helper:gitutil.GitHelper, branch: str, commit_
         raise e
 
 
-def create_pull_request(git_helper: gitutil.GitHelper, org: str, name: str, pr_title: str, pr_body: str, branch: str) -> bool:
+def create_pull_request(git_helper: gitutil.GitHelper, org: str, name: str, pr_title: str, pr_body: str, branch: str):
     """
     Creates a pull request on a GitHub repository if no open pull request with the same title exists.
     """
