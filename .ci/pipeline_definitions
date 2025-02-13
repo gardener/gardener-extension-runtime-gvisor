@@ -105,3 +105,23 @@ gardener-extension-runtime-gvisor:
           helmcharts:
           - <<: *runtime-gvisor
             registry: europe-docker.pkg.dev/gardener-project/releases/charts/gardener/extensions
+    
+    bump-gvisor-version:
+      repo:
+        trigger: false
+      steps:
+        check-and-update-gvisor:
+          execute:
+          - check_and_bump_gvisor_version.py
+      traits:
+        version: ~
+        notifications:
+          default:
+            on_error:
+              triggering_policy: 'only_first'
+              recipients:
+              - codeowners
+        cronjob:
+          days: [Monday]
+          timerange: WORKING_HOURS
+          interval: 24h
