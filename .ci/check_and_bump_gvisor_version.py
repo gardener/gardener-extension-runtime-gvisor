@@ -49,7 +49,7 @@ def get_upstream_version_from_tags(organization: str, repository: str) -> str:
     api_root = 'api.github.com'
     url = f"https://{api_root}/repos/{organization}/{repository}/tags"
 
-    resp=urllib3.request("GET", url)
+    resp=urllib3.PoolManager().request("GET", url)
     if resp.status != 200:
         raise RuntimeError(f"GitHub API did not return 200 status")
     
