@@ -4,11 +4,11 @@ image:
   pullPolicy: IfNotPresent
 
 #  Please find documentation in https://github.com/gardener/gardener/blob/master/docs/deployment/image_vector.md
-imageVectorOverwrite:
-   images:
-     - name: runtime-gvisor
-       repository: foo.bar/gardener/extensions/runtime-gvisor
-       tag: v1.2.3
+imageVectorOverwrite: {}
+  # images:
+  #   - name: runtime-gvisor
+  #     repository: foo.bar/gardener/extensions/runtime-gvisor
+  #     tag: v1.2.3
 #  Please find documentation in https://github.com/gardener/gardener/blob/master/docs/deployment/image_vector.md
 componentImageVectorOverwrites: {}
 
