@@ -1,4 +1,4 @@
-{{- if .Values.image.imageVectorOverwrite }}
+{{- if .Values.imageVectorOverwrite }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,5 +8,5 @@ metadata:
 {{ include "labels" . | indent 4 }}
 data:
   images_overwrite.yaml: |
-{{ .Values.image.imageVectorOverwrite | indent 4 }}
+{{ toYaml .Values.imageVectorOverwrite | indent 4 }}
 {{- end }}
