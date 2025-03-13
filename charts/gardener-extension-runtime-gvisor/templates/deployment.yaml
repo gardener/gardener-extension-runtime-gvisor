@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        {{- if .Values.image.imageVectorOverwrite }}
+        {{- if .Values.imageVectorOverwrite }}
         checksum/configmap-gvisor-imagevector-overwrite: {{ include (print $.Template.BasePath "/configmap-imagevector-overwrite.yaml") . | sha256sum }}
         {{- end }}
         {{- if .Values.metrics.enableScraping }}
@@ -48,7 +48,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        {{- if .Values.image.imageVectorOverwrite }}
+        {{- if .Values.imageVectorOverwrite }}
         - name: IMAGEVECTOR_OVERWRITE
           value: /charts_overwrite/images_overwrite.yaml
         {{- end }}
@@ -56,13 +56,13 @@ spec:
         resources:
 {{ toYaml .Values.resources | nindent 10 }}
 {{- end }}
-        {{- if .Values.image.imageVectorOverwrite }}
+        {{- if .Values.imageVectorOverwrite }}
         volumeMounts:
         - name: imagevector-overwrite
           mountPath: /charts_overwrite/
           readOnly: true
         {{- end }}
-      {{- if .Values.image.imageVectorOverwrite }}
+      {{- if .Values.imageVectorOverwrite }}
       volumes:
       - name: imagevector-overwrite
         configMap:

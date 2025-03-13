@@ -2,10 +2,15 @@ image:
   repository: europe-docker.pkg.dev/gardener-project/public/gardener/extensions/runtime-gvisor
   tag: latest
   pullPolicy: IfNotPresent
-# imageVectorOverwrite: |
-#  Please find documentation in github.com/gardener/gardener/docs/deployment/image_vector.md
-# componentImageVectorOverwrites: |
-#  Please find documentation in github.com/gardener/gardener/docs/deployment/image_vector.md
+
+#  Please find documentation in https://github.com/gardener/gardener/blob/master/docs/deployment/image_vector.md
+imageVectorOverwrite: {}
+  # images:
+  #   - name: runtime-gvisor
+  #     repository: foo.bar/gardener/extensions/runtime-gvisor
+  #     tag: v1.2.3
+#  Please find documentation in https://github.com/gardener/gardener/blob/master/docs/deployment/image_vector.md
+componentImageVectorOverwrites: {}
 
 resources: {}
 vpa:
