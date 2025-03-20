@@ -77,19 +77,19 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		rootPodExecutor := framework.NewRootPodExecutor(f.Logger, f.ShootClient, &nodeList.Items[0].Name, "kube-system")
 
 		// gVisor requires containerd, so check that first
-		containerdServiceCommand := fmt.Sprintf("systemctl is-active %s", extensionsv1alpha1.CRINameContainerD)
+		containerdServiceCommand := []string{"systemctl", "is-active", "containerd"}
 		executeCommand(ctx, rootPodExecutor, containerdServiceCommand, "active")
 
 		// check that the binaries are available
-		checkRunscShimBinary := fmt.Sprintf("[ -f %s/%s ] && echo 'found' || echo 'Not found'", string(extensionsv1alpha1.ContainerDRuntimeContainersBinFolder), "containerd-shim-runsc-v1")
+		checkRunscShimBinary := []string{"sh", "-c", fmt.Sprintf("[ -f %s/%s ] && echo 'found' || echo 'Not found'", string(extensionsv1alpha1.ContainerDRuntimeContainersBinFolder), "containerd-shim-runsc-v1")}
 		executeCommand(ctx, rootPodExecutor, checkRunscShimBinary, "found")
 
-		checkRunscBinary := fmt.Sprintf("[ -f %s/%s ] && echo 'found' || echo 'Not found'", string(extensionsv1alpha1.ContainerDRuntimeContainersBinFolder), "runsc")
+		checkRunscBinary := []string{"sh", "-c", fmt.Sprintf("[ -f %s/%s ] && echo 'found' || echo 'Not found'", string(extensionsv1alpha1.ContainerDRuntimeContainersBinFolder), "runsc")}
 		executeCommand(ctx, rootPodExecutor, checkRunscBinary, "found")
 
 		// check that containerd config.toml is configured for gVisor
-		checkConfigurationCommand := "cat /etc/containerd/config.toml | grep -c 'containerd.runtimes.runsc'"
-		executeCommand(ctx, rootPodExecutor, checkConfigurationCommand, "1")
+		checkConfigurationCommand := []string{"sh", "-c", "cat /etc/containerd/config.toml | grep -c 'containerd.runtimes.runsc'"}
+		executeCommand(ctx, rootPodExecutor, checkConfigurationCommand, "2")
 
 		// deploy pod using gVisor RuntimeClass
 		gVisorPod, err := deployGVisorPod(ctx, f.ShootClient.Client())
@@ -106,7 +106,7 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		g.Expect(err).ToNot(g.HaveOccurred())
 
 		// check kernel startup logs
-		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, "dmesg | grep -i -c gVisor")
+		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, []string{"sh", "-c", "dmesg | grep -i -c gVisor"}...)
 		g.Expect(err).ToNot(g.HaveOccurred())
 		response, err := io.ReadAll(stdout)
 		g.Expect(err).ToNot(g.HaveOccurred())
@@ -249,8 +249,8 @@ func deployGVisorPod(ctx context.Context, c client.Client) (*corev1.Pod, error) 
 }
 
 // executeCommand executes a command on the host and checks the returned result
-func executeCommand(ctx context.Context, rootPodExecutor framework.RootPodExecutor, command, expected string) {
-	response, err := rootPodExecutor.Execute(ctx, command)
+func executeCommand(ctx context.Context, rootPodExecutor framework.RootPodExecutor, command []string, expected string) {
+	response, err := rootPodExecutor.Execute(ctx, command...)
 	framework.ExpectNoError(err)
 	g.Expect(response).ToNot(g.BeNil())
 	g.Expect(string(response)).To(g.Equal(fmt.Sprintf("%s\n", expected)))
