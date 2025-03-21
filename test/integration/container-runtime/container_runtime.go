@@ -106,7 +106,7 @@ var _ = ginkgo.Describe("gVisor tests", func() {
 		g.Expect(err).ToNot(g.HaveOccurred())
 
 		// check kernel startup logs
-		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, []string{"sh", "-c", "dmesg | grep -i -c gVisor"}...)
+		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(ctx, gVisorPod.Namespace, gVisorPod.Name, gVisorPod.Spec.Containers[0].Name, "sh", "-c", "dmesg | grep -i -c gVisor")
 		g.Expect(err).ToNot(g.HaveOccurred())
 		response, err := io.ReadAll(stdout)
 		g.Expect(err).ToNot(g.HaveOccurred())
