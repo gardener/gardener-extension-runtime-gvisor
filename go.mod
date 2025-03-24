@@ -1,6 +1,7 @@
 module github.com/gardener/gardener-extension-runtime-gvisor
 
-go 1.23.0
+go 1.24.0
+
 toolchain go1.24.1
 
 require (
@@ -145,4 +146,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace k8s.io/client-go => k8s.io/client-go v0.32.2
+replace k8s.io/client-go => k8s.io/client-go v0.32.3
