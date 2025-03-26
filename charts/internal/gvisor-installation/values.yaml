@@ -9,3 +9,4 @@ config:
     worker.gardener.cloud/pool: gvisor-pool
   configFlags: |
     net-raw = "false"
+    debug = "false"
