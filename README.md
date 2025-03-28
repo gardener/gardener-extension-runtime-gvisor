@@ -46,7 +46,7 @@ GVisor can be configured with additional configuration flags by adding them to t
                 apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
                 configFlags:
-                  "net-raw" "true"
+                  net-raw: "true"
                   ...
 ...
 ```
@@ -73,6 +73,24 @@ spec:
       matchLabels:
         worker.gardener.cloud/pool: worker-xyz
 ```
+
+## Debugging
+
+runsc can produce additional debug logs which are helpful when Pods do not start or do not properly terminate. To turn debug logs on, the config flag `debug` can be set:
+
+```yaml
+...
+            - type: gvisor
+              providerConfig:
+                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+                kind: GVisorConfiguration
+                configFlags:
+                  debug: "true"
+                  ...
+...
+```
+
+With this setting, runsc will create debug logs for each and every container in `/var/log/runsc/<containerd-id>/<command>-gvisor.log` on a node.
 
 ---
 

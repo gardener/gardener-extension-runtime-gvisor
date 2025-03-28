@@ -41,15 +41,18 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		}
 	}
 
-	runscConfig := ""
+	runscConfigFlags := ""
 	if providerConfig.ConfigFlags != nil && len(*providerConfig.ConfigFlags) > 0 {
 		for key, value := range *providerConfig.ConfigFlags {
 			// the API allows to set arbitrary flags, but we only allow the following flags for now
 			// A list of all supported flags can be found here: https://github.com/google/gvisor/blob/master/runsc/config/flags.go
 			if key == "net-raw" && (value == "true" || value == "false") {
-				runscConfig += fmt.Sprintf("%s = \"%s\"\n", key, value)
+				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, value)
 			}
-
+			if key == "debug" && value == "true" {
+				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, "true")
+				runscConfigFlags += "debug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\""
+			}
 		}
 	}
 
@@ -65,7 +68,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		"binFolder":    cr.Spec.BinaryPath,
 		"nodeSelector": nodeSelectorValue,
 		"workergroup":  cr.Spec.WorkerPool.Name,
-		"configFlags":  runscConfig,
+		"configFlags":  runscConfigFlags,
 	}
 
 	gvisorChartValues := map[string]interface{}{

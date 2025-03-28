@@ -114,10 +114,14 @@ kind: GVisorConfiguration`
 			testCases := map[string]ProviderConfigTestCase{
 				"no-flags": {providerConfig: providerConfigBase,
 					expectedConfigFlags: ""},
-				"all-flags": {providerConfig: providerConfigBase + `
+				"net-raw-flag": {providerConfig: providerConfigBase + `
 configFlags:
   "net-raw": "true"`,
 					expectedConfigFlags: "net-raw = \"true\"\n"},
+				"debug-flag": {providerConfig: providerConfigBase + `
+configFlags:
+  "debug": "true"`,
+					expectedConfigFlags: "debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\""},
 			}
 
 			for testName, testCase := range testCases {
