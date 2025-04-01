@@ -102,37 +102,13 @@ var _ = Describe("Chart package test", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("Render Gvisor installation chart correctly when provider config is provided", func() {
-			providerConfigBase := `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: GVisorConfiguration`
-
-			type ProviderConfigTestCase struct {
-				providerConfig      string
-				expectedConfigFlags string
-			}
-
-			testCases := map[string]ProviderConfigTestCase{
-				"no-flags": {providerConfig: providerConfigBase,
-					expectedConfigFlags: ""},
-				"net-raw-flag": {providerConfig: providerConfigBase + `
-configFlags:
-  "net-raw": "true"`,
-					expectedConfigFlags: "net-raw = \"true\"\n"},
-				"debug-flag": {providerConfig: providerConfigBase + `
-configFlags:
-  "debug": "true"`,
-					expectedConfigFlags: "debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\""},
-			}
-
-			for testName, testCase := range testCases {
-
+		DescribeTable("Render Gvisor installation chart correctly when provider config is provided",
+			func(providerConfig string, expectedConfigFlags string) {
 				// set provider config
-				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(testCase.providerConfig)}
+				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(providerConfig)}
 
 				// provider config capabilities should be rendered into values
-				expectedHelmValues["config"].(map[string]interface{})["configFlags"] = testCase.expectedConfigFlags
-				// print current test case name in case of failure
-				fmt.Println("Testing case: ", testName)
+				expectedHelmValues["config"].(map[string]interface{})["configFlags"] = expectedConfigFlags
 
 				mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(expectedHelmValues)).Return(&chartrenderer.RenderedChart{
 					ChartName: "test",
@@ -143,7 +119,28 @@ configFlags:
 
 				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
 				Expect(err).NotTo(HaveOccurred())
-			}
-		})
+			},
+			Entry("no-flags", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+kind: GVisorConfiguration`, ""),
+			Entry("net-raw-flag", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+kind: GVisorConfiguration
+configFlags:
+  "net-raw": "true"`, "net-raw = \"true\"\n"),
+			Entry("nvproxy-flag", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+kind: GVisorConfiguration
+configFlags:
+ "nvproxy": "true"`, "nvproxy = \"true\"\n"),
+			Entry("debug-flag", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+kind: GVisorConfiguration
+configFlags:
+  "debug": "true"`, "debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\n"),
+			Entry("all-flags", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+kind: GVisorConfiguration
+configFlags:
+ "net-raw": "true"
+ "debug": "true"
+ "nvproxy": "true"`,
+				// rendered alphabetically as the map is unordered
+				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\nnet-raw = \"true\"\nnvproxy = \"true\"\n"))
 	})
 })
