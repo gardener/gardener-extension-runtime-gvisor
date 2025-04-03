@@ -10,3 +10,4 @@ config:
   configFlags: |
     net-raw = "false"
     debug = "false"
+    nvproxy = "false"
