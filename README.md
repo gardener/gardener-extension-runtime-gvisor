@@ -101,7 +101,7 @@ With this setting, runsc will create debug logs for each and every container in 
 
 ## NVProxy Usage
 
-gvisor can be used with NVIDIA GPUs. To enable this, the `nvproxy` config flag must be set in the gvisor providerConfig of the shoot:
+gVisor can be used with NVIDIA GPUs. To enable this, the `nvproxy` config flag must be set in the gVisor providerConfig of the shoot:
 
 ```yaml
 ...
