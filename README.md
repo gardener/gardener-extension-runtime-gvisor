@@ -47,7 +47,7 @@ Right now the following flags are supported and all other flags are ignored:
 ...
             - type: gvisor
               providerConfig:
-                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+                apiVersion: gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
                 configFlags:
                   debug: "true"
@@ -80,25 +80,6 @@ spec:
         worker.gardener.cloud/pool: worker-xyz
 ```
 
-## Debugging
-
-runsc can produce additional debug logs which are helpful when Pods do not start or do not properly terminate. To turn debug logs on, the config flag `debug` can be set:
-
-```yaml
-...
-            - type: gvisor
-              providerConfig:
-                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-                kind: GVisorConfiguration
-                configFlags:
-                  debug: "true"
-                  ...
-...
-```
-
-With this setting, runsc will create debug logs for each and every container in `/var/log/runsc/<containerd-id>/<command>-gvisor.log` on a node.
-
-
 ## NVProxy Usage
 
 gVisor can be used with NVIDIA GPUs. To enable this, the `nvproxy` config flag must be set in the gVisor providerConfig of the shoot:
@@ -107,7 +88,7 @@ gVisor can be used with NVIDIA GPUs. To enable this, the `nvproxy` config flag m
 ...
             - type: gvisor
               providerConfig:
-                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+                apiVersion: gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
                 configFlags:
                   nvproxy: "true"
@@ -116,6 +97,7 @@ gVisor can be used with NVIDIA GPUs. To enable this, the `nvproxy` config flag m
 ```
 
 ### Pre-requisites
+
 - The required NVIDIA drivers must be installed on the nodes. 
   - In case of Gardenlinux, the [gardenlinux-nvidia-installer](https://github.com/gardenlinux/gardenlinux-nvidia-installer) can be used.
   - ⚠ Please note that the gardenlinux-nvidia-installer version must match the gardenlinux version.
