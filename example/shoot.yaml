@@ -15,7 +15,7 @@ spec:
             - type: gvisor
 # If you need a custom configuration, you can specify additional config flags
 #              providerConfig:
-#                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+#                apiVersion: gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
 #                kind: GVisorConfiguration
 #                configFlags:
 #                  net-raw: "true"

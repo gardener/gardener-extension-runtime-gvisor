@@ -6,7 +6,7 @@ package charts_test
 
 import (
 	"fmt"
-
+	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
@@ -16,6 +16,7 @@ import (
 	"helm.sh/helm/v3/pkg/releaseutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
 
 	internalcharts "github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
@@ -103,9 +104,17 @@ var _ = Describe("Chart package test", func() {
 		})
 
 		DescribeTable("Render Gvisor installation chart correctly when provider config is provided",
-			func(providerConfig string, expectedConfigFlags string) {
+			func(configFlags map[string]string, expectedConfigFlags string) {
+				providerConfig := &gvisorconfiguration.GVisorConfiguration{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: gvisorconfiguration.GroupName + "/v1alpha1",
+						Kind:       "GVisorConfiguration",
+					},
+					ConfigFlags: &configFlags,
+				}
+				jsonData, _ := json.Marshal(providerConfig)
 				// set provider config
-				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: []byte(providerConfig)}
+				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: jsonData}
 
 				// provider config capabilities should be rendered into values
 				expectedHelmValues["config"].(map[string]interface{})["configFlags"] = expectedConfigFlags
@@ -120,27 +129,20 @@ var _ = Describe("Chart package test", func() {
 				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
 				Expect(err).NotTo(HaveOccurred())
 			},
-			Entry("no-flags", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: GVisorConfiguration`, ""),
-			Entry("net-raw-flag", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: GVisorConfiguration
-configFlags:
-  "net-raw": "true"`, "net-raw = \"true\"\n"),
-			Entry("nvproxy-flag", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: GVisorConfiguration
-configFlags:
- "nvproxy": "true"`, "nvproxy = \"true\"\n"),
-			Entry("debug-flag", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: GVisorConfiguration
-configFlags:
-  "debug": "true"`, "debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\n"),
-			Entry("all-flags", `apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
-kind: GVisorConfiguration
-configFlags:
- "net-raw": "true"
- "debug": "true"
- "nvproxy": "true"`,
-				// rendered alphabetically as the map is unordered
-				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\nnet-raw = \"true\"\nnvproxy = \"true\"\n"))
+			Entry("no-flags", map[string]string{}, ""),
+			Entry("nvproxy-flag", map[string]string{"nvproxy": "true"}, "nvproxy = \"true\"\n"),
+			Entry("net-raw-flag", map[string]string{"net-raw": "true"}, "net-raw = \"true\"\n"),
+			Entry("debug-flag",
+				map[string]string{"debug": "true"},
+				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\n"),
+			FEntry("all-flags",
+				map[string]string{"net-raw": "true", "debug": "true", "nvproxy": "true"},
+				// rendered alphabetically
+				`debug = "true"
+debug-log = "/var/log/runsc/%ID%/gvisor-%COMMAND%.log"
+net-raw = "true"
+nvproxy = "true"
+`),
+		)
 	})
 })
