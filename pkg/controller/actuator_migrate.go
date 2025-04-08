@@ -16,16 +16,16 @@ import (
 
 // Migrate implements ContainerRuntime.Actuator.
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, _ *extensionscontroller.Cluster) error {
-	managedResourceName := GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
+	installationManagedResourceName := GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
 
-	log.Info("Setting keepObjects=true for managed resource due to the migration of the corresponding ContainerRuntime", "managedResourceName", managedResourceName, "namespace", cr.Namespace, "containerRuntime", cr.Name)
-	if err := managedresources.SetKeepObjects(ctx, a.client, cr.Namespace, managedResourceName, true); err != nil {
-		return fmt.Errorf("could not keep objects of managed resource %q: %w", managedResourceName, err)
+	log.Info("Setting keepObjects=true for managed resource due to the migration of the corresponding ContainerRuntime", "managedResourceName", installationManagedResourceName)
+	if err := managedresources.SetKeepObjects(ctx, a.client, cr.Namespace, installationManagedResourceName, true); err != nil {
+		return fmt.Errorf("could not keep objects of managed resource %q: %w", installationManagedResourceName, err)
 	}
 
-	log.Info("Deleting managed resource due to the migration of the corresponding ContainerRuntime", "managedResourceName", managedResourceName, "namespace", cr.Namespace, "containerRuntime", cr.Name)
-	if err := a.deleteManagedResource(ctx, cr.Namespace, managedResourceName, false); err != nil {
-		return fmt.Errorf("could not delete managed resource %q: %w", managedResourceName, err)
+	log.Info("Deleting managed resource due to the migration of the corresponding ContainerRuntime", "managedResourceName", installationManagedResourceName)
+	if err := a.deleteManagedResource(ctx, cr.Namespace, installationManagedResourceName, false); err != nil {
+		return fmt.Errorf("could not delete managed resource %q: %w", installationManagedResourceName, err)
 	}
 
 	// We can directly set `keepObjects=true` and delete the GVisor ManagedResource because all ContainerRuntimes are migrated
