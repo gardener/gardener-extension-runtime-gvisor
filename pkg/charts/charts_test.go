@@ -135,7 +135,7 @@ var _ = Describe("Chart package test", func() {
 			Entry("debug-flag",
 				map[string]string{"debug": "true"},
 				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\n"),
-			FEntry("all-flags",
+			Entry("all-flags",
 				map[string]string{"net-raw": "true", "debug": "true", "nvproxy": "true"},
 				// rendered alphabetically
 				`debug = "true"
