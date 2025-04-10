@@ -6,12 +6,10 @@ package controller
 
 import (
 	"context"
-	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -21,12 +19,12 @@ import (
 // Delete implements ContainerRuntime.Actuator.
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1alpha1.ContainerRuntime, cluster *extensionscontroller.Cluster) error {
 	var (
-		managedResourceName = GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
-		forceDelete         = cluster != nil && v1beta1helper.ShootNeedsForceDeletion(cluster.Shoot)
+		installationManagedResourceName = GVisorInstallationManagedResourceName + "-" + cr.Spec.WorkerPool.Name
+		forceDelete                     = cluster != nil && v1beta1helper.ShootNeedsForceDeletion(cluster.Shoot)
 	)
 
-	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managedResourceName", managedResourceName, "namespace", cr.Namespace, "containerRuntime", cr.Name)
-	if err := a.deleteManagedResource(ctx, cr.Namespace, managedResourceName, forceDelete); err != nil {
+	log.Info("Deleting managed resource due to the deletion of the corresponding ContainerRuntime", "managedResourceName", installationManagedResourceName)
+	if err := a.deleteManagedResource(ctx, cr.Namespace, installationManagedResourceName, forceDelete); err != nil {
 		return err
 	}
 
@@ -37,27 +35,12 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1
 	}
 
 	if isGVisorInstallationRequired(cr.Name, list) {
-		log.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion", "namespace", cr.Namespace, "containerRuntime", cr.Name)
+		log.Info("gVisor is still required in the cluster - go ahead with ContainerRuntime deletion")
 		return nil
 	}
 	log.Info("Deleting managed resource - no worker pool in the Shoot cluster requires gVisor any more", "managedResourceName", GVisorManagedResourceName)
 
 	return a.deleteManagedResource(ctx, cr.Namespace, GVisorManagedResourceName, forceDelete)
-}
-
-func (a *actuator) deleteManagedResource(ctx context.Context, namespace, managedResourceName string, forceDelete bool) error {
-	if err := managedresources.Delete(ctx, a.client, namespace, managedResourceName, true); err != nil {
-		return err
-	}
-
-	if !forceDelete {
-		timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-		defer cancel()
-
-		return managedresources.WaitUntilDeleted(timeoutCtx, a.client, namespace, managedResourceName)
-	}
-
-	return nil
 }
 
 func isGVisorInstallationRequired(name string, list *extensionsv1alpha1.ContainerRuntimeList) bool {
