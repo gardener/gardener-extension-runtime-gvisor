@@ -6,7 +6,7 @@ package charts_test
 
 import (
 	"fmt"
-	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
+
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
@@ -20,6 +20,7 @@ import (
 
 	internalcharts "github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
+	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
