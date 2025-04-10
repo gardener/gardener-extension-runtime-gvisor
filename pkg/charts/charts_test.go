@@ -16,7 +16,9 @@ import (
 	"helm.sh/helm/v3/pkg/releaseutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
+	runtimeutils "k8s.io/apimachinery/pkg/util/runtime"
 
 	internalcharts "github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
@@ -104,7 +106,48 @@ var _ = Describe("Chart package test", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		DescribeTable("Render Gvisor installation chart correctly when provider config is provided",
+		DescribeTable("Provider config decoding",
+			func(providerConfig *gvisorconfiguration.GVisorConfiguration, expectedError string) {
+				rawJson, _ := json.Marshal(providerConfig)
+
+				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: rawJson}
+
+				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+				Expect(err.Error()).To(ContainSubstring(expectedError))
+			},
+			Entry("fail on invalid API",
+				&gvisorconfiguration.GVisorConfiguration{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "some.group.com/v1alpha1",
+						Kind:       "GVisorConfiguration",
+					},
+					ConfigFlags: &map[string]string{"any": "flag"},
+				},
+				`no kind "GVisorConfiguration" is registered for version "some.group.com/v1alpha1" in scheme`,
+			),
+			Entry("fail on unsupported API version",
+				&gvisorconfiguration.GVisorConfiguration{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: gvisorconfiguration.GroupName + "/v1alpha2",
+						Kind:       "GVisorConfiguration",
+					},
+					ConfigFlags: &map[string]string{"any": "flag"},
+				},
+				`no kind "GVisorConfiguration" is registered for version "gvisor.runtime.extensions.config.gardener.cloud/v1alpha2" in scheme`,
+			),
+			Entry("fail on invalid Kind",
+				&gvisorconfiguration.GVisorConfiguration{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: gvisorconfiguration.GroupName + "/v1alpha1",
+						Kind:       "ControllerConfiguration",
+					},
+					ConfigFlags: &map[string]string{"any": "flag"},
+				},
+				"converting (v1alpha1.ControllerConfiguration) to (v1alpha1.GVisorConfiguration): unknown conversion",
+			),
+		)
+
+		DescribeTable("Render Gvisor installation chart correctly with valid provider config",
 			func(configFlags map[string]string, expectedConfigFlags string) {
 				providerConfig := &gvisorconfiguration.GVisorConfiguration{
 					TypeMeta: metav1.TypeMeta{
@@ -113,9 +156,15 @@ var _ = Describe("Chart package test", func() {
 					},
 					ConfigFlags: &configFlags,
 				}
-				jsonData, _ := json.Marshal(providerConfig)
-				// set provider config
-				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: jsonData}
+
+				// this function acts as a little self test on schema encoding that is currently not used in production code.
+				rawJson, err := encodeProviderConfig(providerConfig)
+
+				// this indicates that either the provider config is incorrect
+				// or the scheme is not registered correctly
+				Expect(err).NotTo(HaveOccurred())
+
+				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: rawJson}
 
 				// provider config capabilities should be rendered into values
 				expectedHelmValues["config"].(map[string]interface{})["configFlags"] = expectedConfigFlags
@@ -127,7 +176,7 @@ var _ = Describe("Chart package test", func() {
 					},
 				}, nil)
 
-				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+				_, err = charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
 				Expect(err).NotTo(HaveOccurred())
 			},
 			Entry("no-flags", map[string]string{}, ""),
@@ -147,3 +196,21 @@ nvproxy = "true"
 		)
 	})
 })
+
+// helper function to encode the provider config to a raw JSON byte array
+// Note that this function will not be used in production code, but is a self test
+// It uses only the Go Type system to encode the provider config
+// the API version and Kind are not checked
+func encodeProviderConfig(providerConfig *gvisorconfiguration.GVisorConfiguration) ([]byte, error) {
+	scheme := runtime.NewScheme()
+	runtimeutils.Must(gvisorconfiguration.AddToScheme(scheme))
+	codecFactory := serializer.NewCodecFactory(scheme)
+	encoder := codecFactory.LegacyCodec(gvisorconfiguration.SchemeGroupVersion)
+
+	encoded, err := runtime.Encode(encoder, providerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("could not encode provider config: %w", err)
+	}
+
+	return encoded, nil
+}
