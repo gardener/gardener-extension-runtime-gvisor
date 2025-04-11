@@ -51,7 +51,10 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 			}
 			if key == "debug" && value == "true" {
 				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, "true")
-				runscConfigFlags += "debug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\""
+				runscConfigFlags += "debug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\n"
+			}
+			if key == "nvproxy" && value == "true" {
+				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, "true")
 			}
 		}
 	}
