@@ -1,23 +1,35 @@
+version: "2"
 run:
   concurrency: 4
-  deadline: 10m
-
 linters:
-  disable:
-  - unused
   enable:
-  - revive
-
-issues:
-  exclude-use-default: false
-  exclude:
-  # revive
-  - var-naming # ((var|const|struct field|func) .* should be .*
-  - dot-imports # should not use dot imports
-  - package-comments # package comment should be of the form
-  - indent-error-flow # if block ends with a return statement, so drop this else and outdent its block
-  - "exported: (type|func) name will be used as .* by other packages, and that stutters;"
-  exclude-rules:
-  - linters:
-    - staticcheck
-    text: "SA1019:" # Excludes messages where deprecated variables are used
+    - revive
+  disable:
+    - unused
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - staticcheck
+        text: 'SA1019:'
+      - path: (.+)\.go$
+        text: var-naming
+      - path: (.+)\.go$
+        text: dot-imports
+      - path: (.+)\.go$
+        text: package-comments
+      - path: (.+)\.go$
+        text: indent-error-flow
+      - path: (.+)\.go$
+        text: 'exported: (type|func) name will be used as .* by other packages, and that stutters;'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
