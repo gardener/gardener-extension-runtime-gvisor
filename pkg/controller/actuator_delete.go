@@ -45,7 +45,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, cr *extensionsv1
 
 func isGVisorInstallationRequired(name string, list *extensionsv1alpha1.ContainerRuntimeList) bool {
 	for _, cr := range list.Items {
-		if cr.Name != name && cr.Spec.DefaultSpec.Type == gvisor.Type && cr.DeletionTimestamp == nil {
+		if cr.Name != name && cr.Spec.Type == gvisor.Type && cr.DeletionTimestamp == nil {
 			return true
 		}
 	}
