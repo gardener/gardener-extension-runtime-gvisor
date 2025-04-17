@@ -37,16 +37,22 @@ spec:
     ...
 ```
 
-GVisor can be configured with additional configuration flags by adding them to the `configFlags` field in the providerConfig. Right now we only allow the `"net-raw"` flag to be set. All other flags are ignored.
+gVisor can be configured with additional configuration flags by adding them to the `configFlags` field in the providerConfig. 
+Right now the following flags are supported and all other flags are ignored:
+- `debug: "true"`: This enables debug logs for runsc. The logs are written to `/var/log/runsc/<containerd-id>/<command>-gvisor.log` on the node.
+- `net-raw: "true"`: This is required for some applications that need to use raw sockets, such as `traceroute`, or `istio` init conainers.
+- `nvproxy: "true"`: Run GPU enabled containers in your gVisor sandbox. This flag is required for the NVIDIA GPU device plugin to work with gVisor.
 
 ```yaml
 ...
             - type: gvisor
               providerConfig:
-                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+                apiVersion: gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
                 configFlags:
+                  debug: "true"
                   net-raw: "true"
+                  nvproxy: "true"
                   ...
 ...
 ```
@@ -74,23 +80,50 @@ spec:
         worker.gardener.cloud/pool: worker-xyz
 ```
 
-## Debugging
+## NVProxy Usage
 
-runsc can produce additional debug logs which are helpful when Pods do not start or do not properly terminate. To turn debug logs on, the config flag `debug` can be set:
+gVisor can be used with NVIDIA GPUs. To enable this, the `nvproxy` config flag must be set in the gVisor providerConfig of the shoot:
 
 ```yaml
 ...
             - type: gvisor
               providerConfig:
-                apiVersion: gvisor.os.extensions.gardener.cloud/v1alpha1
+                apiVersion: gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
                 kind: GVisorConfiguration
                 configFlags:
-                  debug: "true"
+                  nvproxy: "true"
                   ...
 ...
 ```
 
-With this setting, runsc will create debug logs for each and every container in `/var/log/runsc/<containerd-id>/<command>-gvisor.log` on a node.
+### Pre-requisites
+
+- The required NVIDIA drivers must be installed on the nodes. 
+  - In case of Gardenlinux, the [gardenlinux-nvidia-installer](https://github.com/gardenlinux/gardenlinux-nvidia-installer) can be used.
+  - ⚠ Please note that the gardenlinux-nvidia-installer version must match the gardenlinux version.
+- The [NVIDIA device plugin](https://github.com/NVIDIA/k8s-device-plugin?tab=readme-ov-file#nvidia-device-plugin-for-kubernetes) must be installed in the cluster.
+
+### Known limitations:
+
+gVisor does not support all NVIDIA GPUs and drivers. Please refer to the [gVisor documentation](https://gvisor.dev/docs/user_guide/gpu/) for detailed information.
+
+Before using gVisor with NVIDIA GPUs, please check the supporded drivers by running the following command on your node with enabled gVisor:
+
+```bash
+$ /var/bin/containerruntimes/runsc nvproxy list-supported-drivers
+535.183.01
+535.183.06
+535.216.01
+535.230.02
+550.54.14
+550.54.15
+550.90.07
+550.90.12
+550.127.05
+560.35.03
+565.57.01
+570.86.15
+```
 
 ---
 
