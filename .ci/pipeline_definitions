@@ -34,6 +34,8 @@ gardener-extension-runtime-gvisor:
                 username: 'MrBatschner'
               - type: 'githubUser'
                 username: 'Roncossek'
+              - type: 'githubUser'
+                username: 'Vincinator'
           gardener-extension-runtime-gvisor-installation:
             image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/extensions/runtime-gvisor-installation
             dockerfile: 'Dockerfile'
@@ -45,6 +47,8 @@ gardener-extension-runtime-gvisor:
                 username: 'MrBatschner'
               - type: 'githubUser'
                 username: 'Roncossek'
+              - type: 'githubUser'
+                username: 'Vincinator'
   jobs:
     head-update:
       traits:
