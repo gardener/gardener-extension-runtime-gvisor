@@ -7,8 +7,8 @@ package charts
 import (
 	"fmt"
 
-	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/helper"
-	"github.com/gardener/gardener/extensions/pkg/util"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +39,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 	providerConfig := &gvisorconfiguration.GVisorConfiguration{}
 	if cr.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cr.Spec.ProviderConfig.Raw, nil, providerConfig); err != nil {
-			return nil, util.DetermineError(fmt.Errorf("could not decode provider config: %w", err), helper.KnownCodes)
+			return nil, v1beta1helper.NewErrorWithCodes(fmt.Errorf("could not decode provider config: %w", err), gardencorev1beta1.ErrorConfigurationProblem)
 		}
 	}
 
