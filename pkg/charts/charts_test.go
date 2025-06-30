@@ -5,8 +5,11 @@
 package charts_test
 
 import (
+	"errors"
 	"fmt"
 
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/chartrenderer"
 	mockchartrenderer "github.com/gardener/gardener/pkg/chartrenderer/mock"
@@ -113,6 +116,11 @@ var _ = Describe("Chart package test", func() {
 				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: rawJson}
 
 				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+				var coder helper.Coder
+				Expect(errors.As(err, &coder)).To(Equal(true))
+				codes := coder.Codes()
+				Expect(len(codes)).To(Equal(1))
+				Expect(codes[0]).To(Equal(gardencorev1beta1.ErrorCode("ERR_CONFIGURATION_PROBLEM")))
 				Expect(err.Error()).To(ContainSubstring(expectedError))
 			},
 			Entry("fail on invalid API",
