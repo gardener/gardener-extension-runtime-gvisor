@@ -39,6 +39,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 	providerConfig := &gvisorconfiguration.GVisorConfiguration{}
 	if cr.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cr.Spec.ProviderConfig.Raw, nil, providerConfig); err != nil {
+			// TODO: Add admission component and move validation there by using strict decoding, for example: https://github.com/gardener/gardener-extension-provider-aws/pull/307.
 			return nil, v1beta1helper.NewErrorWithCodes(fmt.Errorf("could not decode provider config: %w", err), gardencorev1beta1.ErrorConfigurationProblem)
 		}
 	}
