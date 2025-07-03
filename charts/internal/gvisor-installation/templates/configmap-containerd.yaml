@@ -54,6 +54,11 @@ data:
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
       runtime_type = "io.containerd.runsc.v1"
     EOF
+      elif grep -q '^version.*=.*3$' "$FILENAME"
+        cat <<EOF >> $FILENAME
+    [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
+      runtime_type = "io.containerd.runsc.v1"
+    EOF
       else
         cat <<EOF >> $FILENAME
     [plugins.cri.containerd.runtimes.runsc]
@@ -72,6 +77,16 @@ data:
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc.options]
       TypeUrl = "io.containerd.runsc.v1.options"
       ConfigPath = "/etc/containerd/runsc.toml"
+    EOF
+      RESTART_CONTAINERD=true
+    plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc
+    elif ! grep -q plugins.\"io.containerd.cri.v1.runtime\".containerd.runtimes.runsc "$FILENAME"; then
+      cat <<EOF >> $FILENAME
+    [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc.options]
+      TypeUrl = "io.containerd.runsc.v1.options"
+      ConfigPath = "/etc/containerd/runsc.toml"
+      BinaryName = "/var/bin/containerruntimes/runsc"
+      ShimPath = "/var/bin/containerruntimes/containerd-shim-runsc-v1"
     EOF
       RESTART_CONTAINERD=true
     fi
