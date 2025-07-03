@@ -43,37 +43,57 @@ data:
 
     # configuring containerd config file for gVisor
     FILENAME=/var/host/etc/containerd/config.toml
+
+    # containerd config file has multiple versions, depending on containerd version a different config format is used 
+    # which in turn has different config property names
+    #    containerd2.1 uses version=3 by default
+    #    containerd1.7 uses version=2 by default
+    #
+    # If no version is specified, assume version=1 is used (TODO: fix assumption)
+    #
+    # Appending gvisor configs to /etc/containerd/config.toml.
+    # toml config allows for appending keys without placing the key under the respective parrent
+    CONFIG_VERSION=$(grep -E '^version *= *[0-9]+' "$FILENAME" | awk -F '=' '{ gsub(/ /, "", $2); print $2 }')
+
     if ! grep -q containerd.runtimes.runsc "$FILENAME"; then
-      echo "Configuring containerd config file for gVisor."
+      case "$CONFIG_VERSION" in
+        2)
+          echo "Containerd config version 2 detected."
+          cat <<EOF >> "$FILENAME"
 
-      # version 1 is the default version, even though it is deprecated, ref: https://containerd.io/releases/#daemon-configuration
-      # so use version 2 syntax only if it is explicitly enabled in the config file
-      if grep -q '^version.*=.*2$' "$FILENAME"
-      then
-        cat <<EOF >> $FILENAME
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
-      runtime_type = "io.containerd.runsc.v1"
-    EOF
-      else
-        cat <<EOF >> $FILENAME
-    [plugins.cri.containerd.runtimes.runsc]
-      runtime_type = "io.containerd.runsc.v1"
-    EOF
-      fi
+    runtime_type = "io.containerd.runsc.v1"
 
-      # restart containerd as no gvisor runtime was configured before
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc.options]
+    TypeUrl = "io.containerd.runsc.v1.options"
+    ConfigPath = "/etc/containerd/runsc.toml"
+    EOF
+          ;;
+        3)
+          echo "Containerd config version 3 detected."
+          cat <<EOF >> "$FILENAME"
+
+    [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
+    runtime_type = "io.containerd.runsc.v1"
+
+    [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc.options]
+    TypeUrl = "io.containerd.runsc.v1.options"
+    ConfigPath = "/etc/containerd/runsc.toml"
+    BinaryName = "/var/bin/containerruntimes/runsc"
+    ShimPath = "/var/bin/containerruntimes/containerd-shim-runsc-v1"
+    EOF
+          ;;
+        *)
+          cat <<EOF >> "$FILENAME"
+    [plugins.cri.containerd.runtimes.runsc]
+    runtime_type = "io.containerd.runsc.v1"
+    EOF
+          ;;
+      esac
+
       RESTART_CONTAINERD=true
     else
       echo "Containerd already configured for gvisor."
-    fi
-
-    if ! grep -q plugins.\"io.containerd.grpc.v1.cri\".containerd.runtimes.runsc.options "$FILENAME"; then
-      cat <<EOF >> $FILENAME
-    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc.options]
-      TypeUrl = "io.containerd.runsc.v1.options"
-      ConfigPath = "/etc/containerd/runsc.toml"
-    EOF
-      RESTART_CONTAINERD=true
     fi
 
     if [ ! -f /var/host/etc/containerd/runsc.toml ]; then
@@ -83,10 +103,10 @@ data:
     fi
 
     RUNSC_TOML_MD5SUM_INITIAL=$(md5sum /var/host/etc/containerd/runsc.toml)
-     
+
     cat <<EOF > /var/host/etc/containerd/runsc.toml
     [runsc_config]
-{{ .Values.config.configFlags | indent 6 }}
+    {{ .Values.config.configFlags | indent 6 }}
     EOF
 
 
