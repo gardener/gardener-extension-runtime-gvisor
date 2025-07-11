@@ -67,6 +67,8 @@ data:
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc.options]
     TypeUrl = "io.containerd.runsc.v1.options"
     ConfigPath = "/etc/containerd/runsc.toml"
+    BinaryName = "/$BIN_TARGET_DIR/runsc"
+    ShimPath = "/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
     EOF
           ;;
         3)
@@ -79,14 +81,18 @@ data:
     [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc.options]
     TypeUrl = "io.containerd.runsc.v1.options"
     ConfigPath = "/etc/containerd/runsc.toml"
-    BinaryName = "/var/bin/containerruntimes/runsc"
-    ShimPath = "/var/bin/containerruntimes/containerd-shim-runsc-v1"
+    BinaryName = "/$BIN_TARGET_DIR/runsc"
+    ShimPath = "/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
     EOF
           ;;
         *)
           cat <<EOF >> "$FILENAME"
     [plugins.cri.containerd.runtimes.runsc]
     runtime_type = "io.containerd.runsc.v1"
+    [plugins.cri.containerd.runtimes.runsc.options]
+    TypeUrl = "io.containerd.runsc.v1.options"
+    BinaryName = "/$BIN_TARGET_DIR/runsc"
+    ShimPath = "/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
     EOF
           ;;
       esac
