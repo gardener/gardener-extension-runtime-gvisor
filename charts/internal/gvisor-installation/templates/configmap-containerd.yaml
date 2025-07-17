@@ -84,8 +84,6 @@ data:
         runtime_type = "io.containerd.runsc.v1"
         $PROPERTY_RUNSC_OPTIONS_NAME
         TypeUrl = "io.containerd.runsc.v1.options"
-        BinaryName = "/$BIN_TARGET_DIR/runsc"
-        ShimPath = "/$BIN_TARGET_DIR/containerd-shim-runsc-v1"
       EOF
 
       RESTART_CONTAINERD=true
