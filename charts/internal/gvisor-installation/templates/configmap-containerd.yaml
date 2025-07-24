@@ -50,7 +50,7 @@ data:
     #    containerd1.7 uses version=2 by default
     #
     # If no version is specified, assume version=1 is used (see https://containerd.io/releases/#daemon-configuration)
-    CONFIG_VERSION=$(grep -E '^version *= *[0-9]+' "$FILENAME" | awk -F '=' '{ gsub(/ /, "", $2); print $2 }')
+    CONFIG_VERSION=$(grep -m1 -E '^version *= *[0-9]+' "$FILENAME" | awk -F '=' '{ gsub(/ /, "", $2); print $2 }')
 
     if ! grep -q containerd.runtimes.runsc "$FILENAME"; then
       case "$CONFIG_VERSION" in
@@ -80,11 +80,11 @@ data:
       # Indentation is treated as whitespace and ignored 
       # See: https://toml.io/en/v1.0.0)
       cat <<EOF >> "$FILENAME"
-        $PROPERTY_RUNSC_NAME
-        runtime_type = "io.containerd.runsc.v1"
-        $PROPERTY_RUNSC_OPTIONS_NAME
-        TypeUrl = "io.containerd.runsc.v1.options"
-        ConfigPath = "/etc/containerd/runsc.toml"
+      ${PROPERTY_RUNSC_NAME}
+      runtime_type = "io.containerd.runsc.v1"
+      ${PROPERTY_RUNSC_OPTIONS_NAME}
+      TypeUrl = "io.containerd.runsc.v1.options"
+      ConfigPath = "/etc/containerd/runsc.toml"
       EOF
 
       RESTART_CONTAINERD=true
