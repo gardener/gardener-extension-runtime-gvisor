@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	shootVersion = "1.32.0"
+	shootVersion = "1.33.0"
 )
 
 var _ = Describe("Controller tests", func() {
