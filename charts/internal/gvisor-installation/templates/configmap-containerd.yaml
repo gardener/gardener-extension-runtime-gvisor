@@ -85,7 +85,7 @@ data:
       ${PROPERTY_RUNSC_OPTIONS_NAME}
       TypeUrl = "io.containerd.runsc.v1.options"
       ConfigPath = "/etc/containerd/runsc.toml"
-      EOF
+    EOF
 
       RESTART_CONTAINERD=true
 
