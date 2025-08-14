@@ -80,11 +80,11 @@ data:
       # Indentation is treated as whitespace and ignored 
       # See: https://toml.io/en/v1.0.0)
       cat <<EOF >> "$FILENAME"
-      ${PROPERTY_RUNSC_NAME}
-      runtime_type = "io.containerd.runsc.v1"
-      ${PROPERTY_RUNSC_OPTIONS_NAME}
-      TypeUrl = "io.containerd.runsc.v1.options"
-      ConfigPath = "/etc/containerd/runsc.toml"
+    ${PROPERTY_RUNSC_NAME}
+    runtime_type = "io.containerd.runsc.v1"
+    ${PROPERTY_RUNSC_OPTIONS_NAME}
+    TypeUrl = "io.containerd.runsc.v1.options"
+    ConfigPath = "/etc/containerd/runsc.toml"
     EOF
 
       RESTART_CONTAINERD=true
@@ -103,7 +103,7 @@ data:
 
     cat <<EOF > /var/host/etc/containerd/runsc.toml
     [runsc_config]
-    {{ .Values.config.configFlags | indent 6 }}
+{{ .Values.config.configFlags | indent 6 }}
     EOF
 
     # Restart containerd if runsc.toml was updated
