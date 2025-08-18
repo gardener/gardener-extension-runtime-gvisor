@@ -37,7 +37,7 @@ jobs:
             target: gardener-extension-runtime-gvisor
             oci-repository: gardener/extensions/runtime-gvisor
           - name: gardener-extension-runtime-gvisor-installation
-            target: gardener-extension-runtime-gvisor
+            target: gardener-extension-runtime-gvisor-installation
             oci-repository: gardener/extensions/runtime-gvisor-installation
     with:
       name: ${{ matrix.args.name }}
