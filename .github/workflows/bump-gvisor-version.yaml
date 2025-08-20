@@ -24,6 +24,7 @@ jobs:
 
       - name: Update GVISOR_VERSION and open/ensure PR
         shell: bash
+        id: fetch
         run: |
           set -euo pipefail
 
@@ -47,24 +48,6 @@ jobs:
             exit 0
           fi
 
-          # Skip if branch already exists
-          branch="chore/update-gvisor-$ver"
-          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-            echo "branch already exists, please close related PR first or delete branch manually: $branch"
-            exit 0
-          fi
-
-          # Prepare branch, write file, commit, push
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name  "github-actions[bot]"
-          git checkout -B "$branch"
-
-          printf '%s\n' "$ver" > GVISOR_VERSION
-          if git diff --quiet -- GVISOR_VERSION; then
-            echo "No file changes detected after write; exiting."
-            exit 0
-          fi
-
           commit_msg=""
           commit_msg+="chore(gvisor): update to ${ver}\n\n"
           commit_msg+="Update GVISOR_VERSION from \`${current}\` to \`${ver}\`.\n"
@@ -73,25 +56,16 @@ jobs:
             commit_msg+="Diff: https://github.com/google/gvisor/compare/release-${current}...${latest_tag}\n"
           fi
 
-          git add GVISOR_VERSION
-          git commit -m "$(printf '%b' "$commit_msg")"
-          git push -u origin "$branch"
+          echo "commit-message=${commit_msg}" >> ${GITHUB_OUTPUT}
 
-          # If PR already open for this head branch, don't create another
-          owner='${{ github.repository_owner }}'
-          existing_url="$(gh pr list --state open --head "${owner}:${branch}" --json url --jq '.[0].url // empty')"
-          if [[ -n "$existing_url" ]]; then
-            echo "PR already open: $existing_url"
-            exit 0
-          fi
 
-          # Create PR against default branch
-          base_branch="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
-          title="chore: bump gVisor to ${ver}"
-          body=""
-          body+="\nDiff: https://github.com/google/gvisor/compare/release-${current}...${latest_tag}\n"
-          body+="\n**Release note**:\n\`\`\`improvement operator\nUpdated gVisor binaries to \`${ver}\`.\n\`\`\`\n"
-
-          gh pr create --base "$base_branch" --head "$branch" --title "$title" --body "$(printf '%b' "$body")"
+      - uses: gardener/cc-utils/.github/actions/version@master
+        id: version
+        name: create-release-commit
+        with:
+          commit-message: ${{ steps.fetch.outputs.commit-message }}
+          versionfile: "GVISOR_VERSION"
+          version-operation: "noop"
+          commit-kind: "bump" 
 
 
