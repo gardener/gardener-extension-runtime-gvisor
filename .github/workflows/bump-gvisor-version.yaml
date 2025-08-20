@@ -1,0 +1,71 @@
+name: Update gVisor Version
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-gvisor
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update GVISOR_VERSION and open/ensure PR
+        shell: bash
+        id: fetch
+        run: |
+          set -euo pipefail
+
+          # Find latest release-* tag upstream
+          latest_tag="$(git ls-remote --tags --refs https://github.com/google/gvisor.git \
+            | awk -F/ '/refs\/tags\/release-/{print $NF}' \
+            | sort -V | tail -n1)"
+          [[ -n "$latest_tag" ]] || { echo "No release-* tags found"; exit 1; }
+          ver="${latest_tag#release-}"
+
+          # Read current version (file must exist)
+          if [[ ! -f GVISOR_VERSION ]]; then
+            echo "Error: GVISOR_VERSION file not found." >&2
+            exit 1
+          fi
+          current="$(tr -d '\r\n' < GVISOR_VERSION || true)"
+
+          # Skip if already up-to-date
+          if [[ "$ver" == "${current}" ]]; then
+            echo "GVISOR_VERSION already $ver — nothing to do."
+            exit 0
+          fi
+
+          commit_msg=""
+          commit_msg+="chore(gvisor): update to ${ver}\n\n"
+          commit_msg+="Update GVISOR_VERSION from \`${current}\` to \`${ver}\`.\n"
+          commit_msg+="Upstream tag: ${latest_tag}\n"
+          if [[ -n "${current}" ]]; then
+            commit_msg+="Diff: https://github.com/google/gvisor/compare/release-${current}...${latest_tag}\n"
+          fi
+
+          echo "commit-message=${commit_msg}" >> ${GITHUB_OUTPUT}
+
+
+      - uses: gardener/cc-utils/.github/actions/version@master
+        id: version
+        name: create-release-commit
+        with:
+          commit-message: ${{ steps.fetch.outputs.commit-message }}
+          versionfile: "GVISOR_VERSION"
+          version-operation: "noop"
+          commit-kind: "bump" 
+
+
