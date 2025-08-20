@@ -58,10 +58,17 @@ jobs:
 
           echo "commit-message=${commit_msg}" >> ${GITHUB_OUTPUT}
 
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.GARDENER_GITHUB_ACTIONS_APP_ID }}
+          private-key: ${{ secrets.github-app-secret-key || secrets.GARDENER_GITHUB_ACTIONS_PRIVATE_KEY }}
 
       - uses: gardener/cc-utils/.github/actions/version@master
         id: version
         name: create-release-commit
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           commit-message: ${{ steps.fetch.outputs.commit-message }}
           versionfile: "GVISOR_VERSION"
