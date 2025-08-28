@@ -19,11 +19,17 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.GARDENER_GITHUB_ACTIONS_APP_ID }}
+          private-key: ${{ secrets.github-app-secret-key || secrets.GARDENER_GITHUB_ACTIONS_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: get latest GVISOR_VERSION
         shell: bash
@@ -74,7 +80,7 @@ jobs:
             echo "needs-update=false" >> "$GITHUB_OUTPUT" 
             exit 0
           fi
-          
+
           # let pipeline fail because no PR exists for this branch
           if git ls-remote --exit-code origin "$branch_name" >/dev/null 2>&1; then
             echo "gVisor version Bump branch $branch_name already exists"
@@ -83,13 +89,7 @@ jobs:
 
           git checkout -b "$branch_name"
           echo "Created branch: $branch_name"
-          echo "needs-update=true" >> "${GITHUB_OUTPUT}" 
-      - uses: actions/create-github-app-token@v2
-        id: app-token
-        if: steps.fetch_version.outputs.needs-update == 'true'
-        with:
-          app-id: ${{ vars.GARDENER_GITHUB_ACTIONS_APP_ID }}
-          private-key: ${{ secrets.github-app-secret-key || secrets.GARDENER_GITHUB_ACTIONS_PRIVATE_KEY }}
+          echo "needs-update=true" >> "${GITHUB_OUTPUT}"
 
       - uses: gardener/cc-utils/.github/actions/version@master
         id: version
@@ -101,7 +101,7 @@ jobs:
           commit-message: ${{ steps.fetch_version.outputs.commit-message }}
           versionfile: "GVISOR_VERSION"
           version-operation: "noop"
-          commit-kind: "bump" 
+          commit-kind: "bump"
           repository-operation: commit-to-head
           version: ${{ steps.fetch_version.outputs.gvisor-version }}
 
@@ -124,5 +124,3 @@ jobs:
             --head "$BRANCH_NAME" \
             --title "$title" \
             --body "$(printf '%b' "$PR_BODY")"
-
-
