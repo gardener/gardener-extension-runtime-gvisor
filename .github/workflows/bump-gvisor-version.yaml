@@ -1,4 +1,7 @@
 name: Update gVisor Version
+# Scheduled workflow to check for new gVisor releases and update the GVISOR_VERSION file accordingly.
+# If a new version is found, it creates a pull request with the updated version.
+# Can also be triggered manually.
 
 on:
   workflow_dispatch:
