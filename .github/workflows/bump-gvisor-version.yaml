@@ -73,7 +73,7 @@ jobs:
           echo "gVisor-version=$upstream_version" >> "${GITHUB_OUTPUT}"
           echo "branch-name=$branch_name" >> "${GITHUB_OUTPUT}"
 
-          owner='${{ github.repository_owner }}'
+          owner="${{ github.repository_owner }}"
           existing_url="$(gh pr list --state open --head "${owner}:${branch_name}" --json url --jq '.[0].url // empty')"
           if [[ -n "$existing_url" ]]; then
             echo "PR already open: $existing_url"
