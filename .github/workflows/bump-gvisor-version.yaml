@@ -48,7 +48,7 @@ jobs:
             echo "Error: GVISOR_VERSION file not found." >&2
             exit 1
           fi
-          current_version="$(tr -d '\r\n' < GVISOR_VERSION || true)"
+          current_version="$(tr -d '\r\n' < GVISOR_VERSION)"
 
           if [[ "$upstream_version" == "${current_version}" ]]; then
             echo "GVISOR_VERSION already $upstream_version — nothing to do."
