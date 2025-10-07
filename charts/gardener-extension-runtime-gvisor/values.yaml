@@ -19,7 +19,7 @@ vpa:
     minAllowed:
       memory: 50Mi
   updatePolicy:
-    updateMode: "Auto"
+    updateMode: "Recreate"
 
 # settings for metrics, e.g. scraping by seed-prometheus
 metrics:
