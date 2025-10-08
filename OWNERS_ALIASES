@@ -2,12 +2,10 @@
 
 aliases:
   gardener-extension-runtime-gvisor-reviewers:
-  - marwinski
   - MrBatschner
   - Roncossek
   - Vincinator
   gardener-extension-runtime-gvisor-approvers:
-  - marwinski
   - MrBatschner
   - Roncossek
   - Vincinator
