@@ -1,0 +1,11 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+aliases:
+  gardener-extension-runtime-gvisor-reviewers:
+  - MrBatschner
+  - Roncossek
+  - Vincinator
+  gardener-extension-runtime-gvisor-approvers:
+  - MrBatschner
+  - Roncossek
+  - Vincinator
