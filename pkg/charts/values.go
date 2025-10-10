@@ -6,6 +6,7 @@ package charts
 
 import (
 	"fmt"
+	"strconv"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
@@ -49,6 +50,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		for key, value := range *providerConfig.ConfigFlags {
 			// the API allows to set arbitrary flags, but we only allow the following flags for now
 			// A list of all supported flags can be found here: https://github.com/google/gvisor/blob/master/runsc/config/flags.go
+			// and https://github.com/google/gvisor/blob/master/runsc/config/config.go#L46
 			if key == "net-raw" && (value == "true" || value == "false") {
 				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, value)
 			}
@@ -58,6 +60,11 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 			}
 			if key == "nvproxy" && value == "true" {
 				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, "true")
+			}
+			if key == "panic-signal" {
+				if _, err := strconv.Atoi(value); err == nil {
+					runscConfigFlags += fmt.Sprintf("%s = %s\n", key, value)
+				}
 			}
 		}
 	}
