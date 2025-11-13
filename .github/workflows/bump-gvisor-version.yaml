@@ -70,8 +70,20 @@ jobs:
           body+="\nDiff: https://github.com/google/gvisor/compare/release-${current_version}...${latest_tag}\n"
           body+="\n**Release note**:\n\`\`\`improvement operator\nUpdated gVisor binaries to ${upstream_version}.\n\`\`\`\n"
           branch_name="bump-gvisor-to-$upstream_version"
-          echo "commit-message=${commit_msg}" >> ${GITHUB_OUTPUT}
-          echo "pr-body=${body}" >> ${GITHUB_OUTPUT}
+
+          # Use heredoc syntax for multiline output
+          {
+            echo "commit-message<<GITHUB_OUTPUT_EOF"
+            printf '%s\n' "$commit_msg"
+            echo "GITHUB_OUTPUT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "pr-body<<GITHUB_OUTPUT_EOF"
+            printf '%s\n' "$body"
+            echo "GITHUB_OUTPUT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
           echo "gVisor-version=$upstream_version" >> "${GITHUB_OUTPUT}"
           echo "branch-name=$branch_name" >> "${GITHUB_OUTPUT}"
 
