@@ -60,7 +60,7 @@ jobs:
 
           commit_msg=""
           commit_msg+="chore(gvisor): update to ${upstream_version}\n\n"
-          commit_msg+="Update GVISOR_VERSION from \`${current_version}\` to \`${upstream_version}\`.\n"
+          commit_msg+="Update GVISOR_VERSION from ${current_version} to ${upstream_version}.\n"
           commit_msg+="Upstream tag: ${latest_tag}\n"
           if [[ -n "${current_version}" ]]; then
             commit_msg+="Diff: https://github.com/google/gvisor/compare/release-${current_version}...${latest_tag}\n"
@@ -70,8 +70,20 @@ jobs:
           body+="\nDiff: https://github.com/google/gvisor/compare/release-${current_version}...${latest_tag}\n"
           body+="\n**Release note**:\n\`\`\`improvement operator\nUpdated gVisor binaries to ${upstream_version}.\n\`\`\`\n"
           branch_name="bump-gvisor-to-$upstream_version"
-          echo "commit-message=${commit_msg}" >> ${GITHUB_OUTPUT}
-          echo "pr-body=${body}" >> ${GITHUB_OUTPUT}
+
+          # Use heredoc syntax for multiline output
+          {
+            echo "commit-message<<GITHUB_OUTPUT_EOF"
+            echo -e "$commit_msg"
+            echo "GITHUB_OUTPUT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "pr-body<<GITHUB_OUTPUT_EOF"
+            echo -e "$body"
+            echo "GITHUB_OUTPUT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
           echo "gVisor-version=$upstream_version" >> "${GITHUB_OUTPUT}"
           echo "branch-name=$branch_name" >> "${GITHUB_OUTPUT}"
 
