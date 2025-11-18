@@ -63,7 +63,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 			}
 			if key == "panic-signal" {
 				if _, err := strconv.Atoi(value); err == nil {
-					runscConfigFlags += fmt.Sprintf("%s = %s\n", key, value)
+					runscConfigFlags += fmt.Sprintf("%s = %q\n", key, value)
 				}
 			}
 		}

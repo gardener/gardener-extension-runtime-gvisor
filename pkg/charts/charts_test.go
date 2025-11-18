@@ -193,6 +193,9 @@ var _ = Describe("Chart package test", func() {
 			Entry("debug-flag",
 				map[string]string{"debug": "true"},
 				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\n"),
+			Entry("panic-signal",
+				map[string]string{"panic-signal": "123"},
+				"panic-signal = \"123\"\n"),
 		)
 	})
 })
