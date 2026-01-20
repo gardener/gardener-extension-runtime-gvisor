@@ -1,5 +1,5 @@
 ############# builder
-FROM golang:1.25.5 AS builder
+FROM golang:1.25.6 AS builder
 
 ARG EFFECTIVE_VERSION
 WORKDIR /go/src/github.com/gardener/gardener-extension-runtime-gvisor
