@@ -36,7 +36,6 @@ func init() {
 
 // RenderGVisorInstallationChart renders the gVisor installation chart
 func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
-
 	providerConfig := &gvisorconfiguration.GVisorConfiguration{}
 	if cr.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cr.Spec.ProviderConfig.Raw, nil, providerConfig); err != nil {
@@ -77,14 +76,14 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		nodeSelectorValue[key] = value
 	}
 
-	configChartValues := map[string]interface{}{
+	configChartValues := map[string]any{
 		"binFolder":    cr.Spec.BinaryPath,
 		"nodeSelector": nodeSelectorValue,
 		"workergroup":  cr.Spec.WorkerPool.Name,
 		"configFlags":  runscConfigFlags,
 	}
 
-	gvisorChartValues := map[string]interface{}{
+	gvisorChartValues := map[string]any{
 		"config": configChartValues,
 		"images": map[string]string{
 			gvisor.RuntimeGVisorInstallationImageName: imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
@@ -100,7 +99,7 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 
 // RenderGVisorChart renders the gVisor chart
 func RenderGVisorChart(renderer chartrenderer.Interface) ([]byte, error) {
-	gvisorChartValues := map[string]interface{}{}
+	gvisorChartValues := map[string]any{}
 
 	release, err := renderer.RenderEmbeddedFS(charts.InternalChart, gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gvisorChartValues)
 	if err != nil {

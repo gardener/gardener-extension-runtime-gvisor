@@ -35,7 +35,7 @@ var _ = Describe("Chart package test", func() {
 		var (
 			ctrl               *gomock.Controller
 			mockChartRenderer  *mockchartrenderer.MockInterface
-			expectedHelmValues map[string]interface{}
+			expectedHelmValues map[string]any
 
 			testManifestContent = "test-content"
 			mkManifest          = func(name string) releaseutil.Manifest {
@@ -62,11 +62,11 @@ var _ = Describe("Chart package test", func() {
 		BeforeEach(func() {
 			ctrl = gomock.NewController(GinkgoT())
 			mockChartRenderer = mockchartrenderer.NewMockInterface(ctrl)
-			expectedHelmValues = map[string]interface{}{
+			expectedHelmValues = map[string]any{
 				"images": map[string]string{
 					"runtime-gvisor-installation": imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
 				},
-				"config": map[string]interface{}{
+				"config": map[string]any{
 					"nodeSelector": map[string]string{
 						extensionsv1alpha1.CRINameWorkerLabel: string(extensionsv1alpha1.CRINameContainerD),
 						"worker.gardener.cloud/pool":          "gvisor-pool",
@@ -84,7 +84,7 @@ var _ = Describe("Chart package test", func() {
 		})
 
 		It("Render Gvisor chart correctly", func() {
-			renderedValues := map[string]interface{}{}
+			renderedValues := map[string]any{}
 
 			mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.ChartPath, gvisor.ReleaseName, metav1.NamespaceSystem, gomock.Eq(renderedValues)).Return(&chartrenderer.RenderedChart{
 				ChartName: "test",
@@ -117,9 +117,9 @@ var _ = Describe("Chart package test", func() {
 
 				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
 				var coder helper.Coder
-				Expect(errors.As(err, &coder)).To(Equal(true))
+				Expect(errors.As(err, &coder)).To(BeTrue())
 				codes := coder.Codes()
-				Expect(len(codes)).To(Equal(1))
+				Expect(codes).To(HaveLen(1))
 				Expect(codes[0]).To(Equal(gardencorev1beta1.ErrorCode("ERR_CONFIGURATION_PROBLEM")))
 				Expect(err.Error()).To(ContainSubstring(expectedError))
 			},
@@ -175,7 +175,7 @@ var _ = Describe("Chart package test", func() {
 				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: rawJson}
 
 				// provider config capabilities should be rendered into values
-				expectedHelmValues["config"].(map[string]interface{})["configFlags"] = expectedConfigFlags
+				expectedHelmValues["config"].(map[string]any)["configFlags"] = expectedConfigFlags
 
 				mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(expectedHelmValues)).Return(&chartrenderer.RenderedChart{
 					ChartName: "test",
