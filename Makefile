@@ -115,6 +115,14 @@ generate: $(VGOPATH) $(CONTROLLER_GEN) $(EXTENSION_GEN) $(GEN_CRD_API_REFERENCE_
 format: $(GOIMPORTS) $(GOIMPORTSREVISER)
 	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg
 
+.PHONY: add-license-headers
+add-license-headers: $(GO_ADD_LICENSE)
+	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/add-license-header.sh
+
+.PHONY: check-license-headers
+check-license-headers: $(GO_ADD_LICENSE)
+	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/check-license-header.sh
+
 .PHONY: sast
 sast: $(GOSEC)
 	@./hack/sast.sh
@@ -136,10 +144,10 @@ test-cov-clean:
 	@bash $(GARDENER_HACK_DIR)/test-cover-clean.sh
 
 .PHONY: verify
-verify: check format sast test
+verify: check format sast test check-license-headers
 
 .PHONY: verify-extended
-verify-extended: check-generate check format sast-report test-cov test-cov-clean
+verify-extended: check-generate check format sast-report test-cov test-cov-clean check-license-headers
 
 .PHONY: start
 start:
