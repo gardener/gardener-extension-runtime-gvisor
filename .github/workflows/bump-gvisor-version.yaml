@@ -67,6 +67,7 @@ jobs:
           fi
 
           body=""
+          body+="\n/kind dependency-update\n"
           body+="\nDiff: https://github.com/google/gvisor/compare/release-${current_version}...${latest_tag}\n"
           body+="\n**Release note**:\n\`\`\`improvement operator\nUpdated gVisor binaries to ${upstream_version}.\n\`\`\`\n"
           branch_name="bump-gvisor-to-$upstream_version"
