@@ -16,6 +16,7 @@ import (
 // ControllerConfiguration defines the configuration for the GVisor runtime extension.
 type ControllerConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
+
 	// ClientConnection specifies the kubeconfig file and client connection
 	// settings for the proxy server to use when communicating with the apiserver.
 	// +optional
