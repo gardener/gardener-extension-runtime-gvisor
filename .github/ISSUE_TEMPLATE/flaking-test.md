@@ -1,10 +1,13 @@
 ---
-name: Bug Report
-about: Report a bug encountered while working with this Gardener extension
+name: Flaking Test
+about: Report flaky tests or jobs in Gardener CI
+title: "[Flaky Test] FLAKING TEST/SUITE"
 
 ---
 
 <!-- Please ensure that you do not include company internal information. -->
+
+<!-- Please only use this template for submitting reports about flaky tests or jobs (pass or fail with no underlying change in code) in Gardener CI -->
 
 **How to categorize this issue?**
 <!--
@@ -18,21 +21,14 @@ If multiple identifiers make sense you can also state the commands multiple time
 "/area" identifiers:     audit-logging|auto-scaling|backup|certification|control-plane-migration|control-plane|cost|delivery|dev-productivity|disaster-recovery|documentation|high-availability|logging|metering|monitoring|networking|open-source|ops-productivity|os|performance|quality|robustness|scalability|security|storage|testing|usability|user-management
 "/kind" identifiers:     api-change|bug|cleanup|discussion|enhancement|epic|impediment|poc|post-mortem|question|regression|task|technical-debt|test|dependency-update
 -->
-/area os
-/kind bug
+/area testing
+/kind flake
 
-**What happened**:
+**Which test(s)/suite(s) are flaking**:
 
-**What you expected to happen**:
+**CI link**:
 
-**How to reproduce it (as minimally and precisely as possible)**:
+**Reason for failure**:
 
-**Anything else we need to know?**:
+**Anything else we need to know**:
 
-**Environment**:
-
-- Gardener version (if relevant):
-- Extension version:
-- Kubernetes version (use `kubectl version`):
-- Cloud provider or hardware configuration:
-- Others:
