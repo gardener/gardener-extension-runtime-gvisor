@@ -9,6 +9,7 @@ on:
     - cron: "0 06 * * 1" # Runs every Monday at 06:00 UTC
 
 permissions:
+  id-token: write
   contents: write
   pull-requests: write
 
@@ -26,6 +27,7 @@ jobs:
           token-server: ${{ vars.FEDERATED_GITHUB_ACCESS_TOKEN_SERVER }}
           repositories: ${{ github.event.repository.name }}
           permissions: |
+            id-token: write
             contents: write
             pull-requests: write
 
