@@ -27,7 +27,6 @@ jobs:
           token-server: ${{ vars.FEDERATED_GITHUB_ACCESS_TOKEN_SERVER }}
           repositories: ${{ github.event.repository.name }}
           permissions: |
-            id-token: write
             contents: write
             pull-requests: write
 
