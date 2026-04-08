@@ -21,7 +21,7 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: gardener/cc-utils/.github/actions/github-auth@master
+      - uses: gardener/cc-utils/.github/actions/github-auth@v1
         id: app-token
         with:
           token-server: ${{ vars.FEDERATED_GITHUB_ACCESS_TOKEN_SERVER }}
@@ -110,7 +110,7 @@ jobs:
           echo "Created branch: $branch_name"
           echo "needs-update=true" >> "${GITHUB_OUTPUT}"
 
-      - uses: gardener/cc-utils/.github/actions/version@master
+      - uses: gardener/cc-utils/.github/actions/version@v1
         id: version
         if: steps.fetch_version.outputs.needs-update == 'true'
         name: create-release-commit
