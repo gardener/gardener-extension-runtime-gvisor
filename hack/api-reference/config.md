@@ -4,21 +4,20 @@
 <a href="#gvisor.runtime.extensions.config.gardener.cloud%2fv1alpha1">gvisor.runtime.extensions.config.gardener.cloud/v1alpha1</a>
 </li>
 </ul>
+
 <h2 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1">gvisor.runtime.extensions.config.gardener.cloud/v1alpha1</h2>
 <p>
-<p>Package v1alpha1 contains the GVisor container runtime configuration API resources.</p>
+
 </p>
-Resource Types:
-<ul><li>
-<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration</a>
-</li><li>
-<a href="#gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration</a>
-</li></ul>
-<h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.ControllerConfiguration">ControllerConfiguration
+
+<h3 id="controllerconfiguration">ControllerConfiguration
 </h3>
+
+
 <p>
-<p>ControllerConfiguration defines the configuration for the GVisor runtime extension.</p>
+ControllerConfiguration defines the configuration for the GVisor runtime extension.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -27,45 +26,24 @@ Resource Types:
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>
-<code>apiVersion</code></br>
-string</td>
-<td>
-<code>
-gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
-</code>
-</td>
-</tr>
-<tr>
-<td>
-<code>kind</code></br>
-string
-</td>
-<td><code>ControllerConfiguration</code></td>
-</tr>
+
 <tr>
 <td>
 <code>clientConnection</code></br>
 <em>
-<a href="https://godoc.org/k8s.io/component-base/config/v1alpha1#ClientConnectionConfiguration">
-Kubernetes v1alpha1.ClientConnectionConfiguration
-</a>
+<a href="#clientconnectionconfiguration">ClientConnectionConfiguration</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>ClientConnection specifies the kubeconfig file and client connection
-settings for the proxy server to use when communicating with the apiserver.</p>
+<p>ClientConnection specifies the kubeconfig file and client connection<br />settings for the proxy server to use when communicating with the apiserver.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>healthCheckConfig</code></br>
 <em>
-<a href="https://github.com/gardener/gardener/extensions/pkg/apis/config">
-github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1.HealthCheckConfig
-</a>
+<a href="#healthcheckconfig">HealthCheckConfig</a>
 </em>
 </td>
 <td>
@@ -73,13 +51,19 @@ github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1.HealthCheckConf
 <p>HealthCheckConfig is the config for the health check controller</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="gvisor.runtime.extensions.config.gardener.cloud/v1alpha1.GVisorConfiguration">GVisorConfiguration
+
+
+<h3 id="gvisorconfiguration">GVisorConfiguration
 </h3>
+
+
 <p>
-<p>GVisorConfiguration defines the configuration for the gVisor runtime extension.</p>
+GVisorConfiguration defines the configuration for the gVisor runtime extension.
 </p>
+
 <table>
 <thead>
 <tr>
@@ -88,23 +72,7 @@ github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1.HealthCheckConf
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>
-<code>apiVersion</code></br>
-string</td>
-<td>
-<code>
-gvisor.runtime.extensions.config.gardener.cloud/v1alpha1
-</code>
-</td>
-</tr>
-<tr>
-<td>
-<code>kind</code></br>
-string
-</td>
-<td><code>GVisorConfiguration</code></td>
-</tr>
+
 <tr>
 <td>
 <code>configFlags</code></br>
@@ -117,9 +85,8 @@ map[string]string
 <p>ConfigFlags is a map of additional flags that are passed to the runsc binary used by gVisor.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<hr/>
-<p><em>
-Generated with <a href="https://github.com/ahmetb/gen-crd-api-reference-docs">gen-crd-api-reference-docs</a>
-</em></p>
+
+
