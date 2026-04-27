@@ -10,6 +10,7 @@ import (
 	extensioncontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	"github.com/gardener/gardener/extensions/pkg/util"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -28,6 +29,8 @@ type AddOptions struct {
 	Controller controller.Options
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
+	// ExtensionClasses defines the extension classes this controller is responsible for.
+	ExtensionClasses []extensionsv1alpha1.ExtensionClass
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -44,6 +47,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 		Predicates:                containerruntime.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:                      gvisor.Type,
 		IgnoreOperationAnnotation: opts.IgnoreOperationAnnotation,
+		ExtensionClasses:          opts.ExtensionClasses,
 	})
 }
 
