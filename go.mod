@@ -231,4 +231,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace k8s.io/client-go => k8s.io/client-go v0.35.3
+replace k8s.io/client-go => k8s.io/client-go v0.35.4
