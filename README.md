@@ -1,4 +1,4 @@
-# [Gardener Extension for the gVisor Container Runtime Sandbox](https://gardener.cloud)
+# Gardener Extension for the gVisor Container Runtime Sandbox
 
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/gardener-extension-runtime-gvisor)](https://api.reuse.software/info/github.com/gardener/gardener-extension-runtime-gvisor)
 [![Build status](https://github.com/gardener/gardener-extension-runtime-gvisor/actions/workflows/non-release.yaml/badge.svg?branch=master)](https://github.com/gardener/gardener-extension-runtime-gvisor/actions/workflows/non-release.yaml)
