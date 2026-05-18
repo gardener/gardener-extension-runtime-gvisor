@@ -44,8 +44,9 @@ data:
     # configuring containerd config file for gVisor
     FILENAME=/var/host/etc/containerd/config.toml
 
-    # containerd config file has multiple versions, depending on containerd version a different config format is used 
+    # containerd config file has multiple versions, depending on containerd version a different config format is used
     # which in turn has different config property names
+    #    containerd2.3 uses version=4 by default
     #    containerd2.1 uses version=3 by default
     #    containerd1.7 uses version=2 by default
     #
@@ -59,8 +60,8 @@ data:
           PROPERTY_RUNSC_NAME='[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]'
           PROPERTY_RUNSC_OPTIONS_NAME='[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc.options]'
           ;;
-        3)
-          echo "Containerd config version 3 detected."
+        3|4)
+          echo "Containerd config version $CONFIG_VERSION detected."
           PROPERTY_RUNSC_NAME='[plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]'
           PROPERTY_RUNSC_OPTIONS_NAME='[plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc.options]'
           ;;
