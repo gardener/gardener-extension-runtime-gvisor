@@ -1,11 +1,11 @@
 module github.com/gardener/gardener-extension-runtime-gvisor
 
-go 1.25.9
+go 1.25.10
 
 require (
 	github.com/elastic/crd-ref-docs v0.3.0
 	github.com/gardener/gardener v1.143.0
-	github.com/gardener/gardener/pkg/apis v1.142.2
+	github.com/gardener/gardener/pkg/apis v1.143.0
 	github.com/go-logr/logr v1.4.3
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
@@ -232,4 +232,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace k8s.io/client-go => k8s.io/client-go v0.35.4
+replace k8s.io/client-go => k8s.io/client-go v0.35.5
