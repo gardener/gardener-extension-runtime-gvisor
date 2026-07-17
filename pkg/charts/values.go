@@ -16,10 +16,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimeutils "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/utils/ptr"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/charts"
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
 	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
+	gvisorcmd "github.com/gardener/gardener-extension-runtime-gvisor/pkg/cmd"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
@@ -35,7 +37,7 @@ func init() {
 }
 
 // RenderGVisorInstallationChart renders the gVisor installation chart
-func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime) ([]byte, error) {
+func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensionsv1alpha1.ContainerRuntime, serviceConfig gvisorcmd.Config) ([]byte, error) {
 	providerConfig := &gvisorconfiguration.GVisorConfiguration{}
 	if cr.Spec.ProviderConfig != nil {
 		if _, _, err := decoder.Decode(cr.Spec.ProviderConfig.Raw, nil, providerConfig); err != nil {
@@ -83,10 +85,15 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 		"configFlags":  runscConfigFlags,
 	}
 
+	imageName := imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
+	if ptr.Deref(serviceConfig.InstallationTestRepository, "") != "" &&
+		ptr.Deref(providerConfig.TestImageTag, "") != "" {
+		imageName = *serviceConfig.InstallationTestRepository + ":" + *providerConfig.TestImageTag
+	}
 	gvisorChartValues := map[string]any{
 		"config": configChartValues,
 		"images": map[string]string{
-			gvisor.RuntimeGVisorInstallationImageName: imagevector.FindImage(gvisor.RuntimeGVisorInstallationImageName),
+			gvisor.RuntimeGVisorInstallationImageName: imageName,
 		},
 	}
 

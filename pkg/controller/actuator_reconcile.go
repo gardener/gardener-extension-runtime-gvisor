@@ -42,7 +42,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, cr *extension
 	}
 
 	log.Info("Installing gVisor", "shoot", cluster.Shoot.Name, "shootNamespace", cluster.Shoot.Namespace, "workerPoolName", cr.Spec.WorkerPool.Name)
-	gVisorInstallationChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr)
+	gVisorInstallationChart, err := charts.RenderGVisorInstallationChart(chartRenderer, cr, a.config)
 	if err != nil {
 		return err
 	}
