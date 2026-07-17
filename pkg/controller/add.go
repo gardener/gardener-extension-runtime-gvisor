@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	gvisorcmd "github.com/gardener/gardener-extension-runtime-gvisor/pkg/cmd"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
@@ -27,6 +28,8 @@ var (
 type AddOptions struct {
 	// Controller are the controller.Options.
 	Controller controller.Options
+	// Config are the gvisor command line options
+	Config gvisorcmd.Config
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
 	// ExtensionClasses defines the extension classes this controller is responsible for.
@@ -42,7 +45,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 	}
 
 	return containerruntime.Add(mgr, containerruntime.AddArgs{
-		Actuator:                  NewActuator(mgr.GetClient(), extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot)),
+		Actuator:                  NewActuator(mgr.GetClient(), extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot), opts.Config),
 		ControllerOptions:         opts.Controller,
 		Predicates:                containerruntime.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:                      gvisor.Type,

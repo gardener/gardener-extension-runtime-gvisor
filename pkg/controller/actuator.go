@@ -12,19 +12,23 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/containerruntime"
 	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	gvisorcmd "github.com/gardener/gardener-extension-runtime-gvisor/pkg/cmd"
 )
 
 type actuator struct {
 	chartRendererFactory extensionscontroller.ChartRendererFactory
 
 	client client.Client
+	config gvisorcmd.Config
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled ContainerRuntime resources.
-func NewActuator(c client.Client, chartRendererFactory extensionscontroller.ChartRendererFactory) containerruntime.Actuator {
+func NewActuator(c client.Client, chartRendererFactory extensionscontroller.ChartRendererFactory, config gvisorcmd.Config) containerruntime.Actuator {
 	return &actuator{
 		chartRendererFactory: chartRendererFactory,
 		client:               c,
+		config:               config,
 	}
 }
 
