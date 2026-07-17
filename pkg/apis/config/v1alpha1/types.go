@@ -16,4 +16,11 @@ type GVisorConfiguration struct {
 	// ConfigFlags is a map of additional flags that are passed to the runsc binary used by gVisor.
 	// +optional
 	ConfigFlags *map[string]string `json:"configFlags,omitempty"`
+
+	// TestImageTag is the tag for the gardener-extension-runtime-gvisor-installation image to be tested.
+	// It requires that the `gvisorInstallation.testRepository` is configured in the operator extension values and
+	// the image has been uploaded and tagged accordingly.
+	// Only used for development and testing purposes. Does not work if `gvisorInstallation.testRepository` is not specified.
+	// +optional
+	TestImageTag *string `json:"testImageTag,omitempty"`
 }

@@ -10,52 +10,6 @@
 
 </p>
 
-<h3 id="controllerconfiguration">ControllerConfiguration
-</h3>
-
-
-<p>
-ControllerConfiguration defines the configuration for the GVisor runtime extension.
-</p>
-
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-
-<tr>
-<td>
-<code>clientConnection</code></br>
-<em>
-<a href="#clientconnectionconfiguration">ClientConnectionConfiguration</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>ClientConnection specifies the kubeconfig file and client connection<br />settings for the proxy server to use when communicating with the apiserver.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>healthCheckConfig</code></br>
-<em>
-<a href="#healthcheckconfig">HealthCheckConfig</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>HealthCheckConfig is the config for the health check controller</p>
-</td>
-</tr>
-
-</tbody>
-</table>
-
-
 <h3 id="gvisorconfiguration">GVisorConfiguration
 </h3>
 
@@ -83,6 +37,18 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>ConfigFlags is a map of additional flags that are passed to the runsc binary used by gVisor.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>testImageTag</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TestImageTag is the tag for the gardener-extension-runtime-gvisor-installation image to be tested.<br />It requires that the `gvisorInstallation.testRepository` is configured in the operator extension values and<br />the image has been uploaded and tagged accordingly.<br />Only used for development and testing purposes. Does not work if `gvisorInstallation.testRepository` is not specified.</p>
 </td>
 </tr>
 
