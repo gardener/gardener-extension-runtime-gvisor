@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	_ "github.com/gardener/gardener-extension-runtime-gvisor/test/integration/container-runtime"
+	_ "github.com/gardener/gardener-extension-runtime-gvisor/test/integration/gpu-qualification"
 
 	"github.com/gardener/gardener/test/framework"
 	"github.com/gardener/gardener/test/framework/config"
