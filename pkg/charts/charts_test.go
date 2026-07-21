@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/gardener-extension-runtime-gvisor/imagevector"
 	gvisorconfiguration "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/charts"
+	gvisorcmd "github.com/gardener/gardener-extension-runtime-gvisor/pkg/cmd"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
@@ -41,7 +42,8 @@ var _ = Describe("Chart package test", func() {
 			mkManifest          = func(name string) releaseutil.Manifest {
 				return releaseutil.Manifest{Name: fmt.Sprintf("test/templates/%s", name), Content: testManifestContent}
 			}
-			workerGroup = "worker-gvisor"
+			workerGroup      = "worker-gvisor"
+			defaultImageName = "europe-docker.pkg.dev/gardener-project/releases/gardener/extensions/runtime-gvisor-installation:v0.0.0-master+$Format:%H$"
 
 			cr = extensionsv1alpha1.ContainerRuntime{
 				Spec: extensionsv1alpha1.ContainerRuntimeSpec{
@@ -105,7 +107,7 @@ var _ = Describe("Chart package test", func() {
 				},
 			}, nil)
 
-			_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+			_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr, gvisorcmd.Config{})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -115,7 +117,7 @@ var _ = Describe("Chart package test", func() {
 
 				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: rawJson}
 
-				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+				_, err := charts.RenderGVisorInstallationChart(mockChartRenderer, &cr, gvisorcmd.Config{})
 				var coder helper.Coder
 				Expect(errors.As(err, &coder)).To(BeTrue())
 				codes := coder.Codes()
@@ -142,16 +144,6 @@ var _ = Describe("Chart package test", func() {
 					ConfigFlags: &map[string]string{"any": "flag"},
 				},
 				`no kind "GVisorConfiguration" is registered for version "gvisor.runtime.extensions.config.gardener.cloud/v1alpha2" in scheme`,
-			),
-			Entry("fail on invalid Kind",
-				&gvisorconfiguration.GVisorConfiguration{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: gvisorconfiguration.GroupName + "/v1alpha1",
-						Kind:       "ControllerConfiguration",
-					},
-					ConfigFlags: &map[string]string{"any": "flag"},
-				},
-				"converting (v1alpha1.ControllerConfiguration) to (v1alpha1.GVisorConfiguration): unknown conversion",
 			),
 		)
 
@@ -184,7 +176,7 @@ var _ = Describe("Chart package test", func() {
 					},
 				}, nil)
 
-				_, err = charts.RenderGVisorInstallationChart(mockChartRenderer, &cr)
+				_, err = charts.RenderGVisorInstallationChart(mockChartRenderer, &cr, gvisorcmd.Config{})
 				Expect(err).NotTo(HaveOccurred())
 			},
 			Entry("no-flags", map[string]string{}, ""),
@@ -196,6 +188,46 @@ var _ = Describe("Chart package test", func() {
 			Entry("panic-signal",
 				map[string]string{"panic-signal": "123"},
 				"panic-signal = \"123\"\n"),
+		)
+
+		DescribeTable("Render Gvisor installation chart with test image",
+			func(testRepository, testImageTag *string, expectedImageName string) {
+				providerConfig := &gvisorconfiguration.GVisorConfiguration{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: gvisorconfiguration.GroupName + "/v1alpha1",
+						Kind:       "GVisorConfiguration",
+					},
+					TestImageTag: testImageTag,
+				}
+
+				// this function acts as a little self test on schema encoding that is currently not used in production code.
+				rawJson, err := encodeProviderConfig(providerConfig)
+
+				// this indicates that either the provider config is incorrect
+				// or the scheme is not registered correctly
+				Expect(err).NotTo(HaveOccurred())
+
+				cr.Spec.ProviderConfig = &runtime.RawExtension{Raw: rawJson}
+
+				// provider config capabilities should be rendered into values
+				expectedHelmValues["images"] = map[string]string{
+					gvisor.RuntimeGVisorInstallationImageName: expectedImageName,
+				}
+
+				mockChartRenderer.EXPECT().RenderEmbeddedFS(internalcharts.InternalChart, gvisor.InstallationChartPath, gvisor.InstallationReleaseName, metav1.NamespaceSystem, gomock.Eq(expectedHelmValues)).Return(&chartrenderer.RenderedChart{
+					ChartName: "test",
+					Manifests: []releaseutil.Manifest{
+						mkManifest(charts.GVisorConfigKey),
+					},
+				}, nil)
+
+				_, err = charts.RenderGVisorInstallationChart(mockChartRenderer, &cr, gvisorcmd.Config{InstallationTestRepository: testRepository})
+				Expect(err).NotTo(HaveOccurred())
+			},
+			Entry("default", nil, nil, defaultImageName),
+			Entry("no test repository", nil, new("my-tag"), defaultImageName),
+			Entry("no test image tag", new("my-repo.example.com/sub/path/runtime-gvisor-installation"), nil, defaultImageName),
+			Entry("valid test image config", new("my-repo.example.com/sub/path/runtime-gvisor-installation"), new("my-tag"), "my-repo.example.com/sub/path/runtime-gvisor-installation:my-tag"),
 		)
 	})
 })

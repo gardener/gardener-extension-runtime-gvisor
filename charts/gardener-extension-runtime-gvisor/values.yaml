@@ -37,3 +37,6 @@ disableControllers: []
 
 gardener:
   version: ""
+
+gvisorInstallation:
+  testRepository: ""

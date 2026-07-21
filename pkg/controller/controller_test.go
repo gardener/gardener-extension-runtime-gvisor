@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	gvisorcmd "github.com/gardener/gardener-extension-runtime-gvisor/pkg/cmd"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 )
 
@@ -73,7 +74,7 @@ var _ = Describe("Controller tests", func() {
 		BeforeEach(func() {
 			ctx = context.TODO()
 			c = fake.NewClientBuilder().WithScheme(kubernetes.SeedScheme).Build()
-			a = controller.NewActuator(c, extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot))
+			a = controller.NewActuator(c, extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot), gvisorcmd.Config{})
 
 			managedResourceName = "extension-runtime-gvisor"
 			managedResource = &resourcesv1alpha1.ManagedResource{

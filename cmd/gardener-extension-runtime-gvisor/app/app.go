@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	gvisorcmd "github.com/gardener/gardener-extension-runtime-gvisor/pkg/cmd"
 	gvisorcontroller "github.com/gardener/gardener-extension-runtime-gvisor/pkg/controller"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/healthcheck"
@@ -43,6 +44,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			MaxConcurrentReconciles: 5,
 		}
 
+		gvisorConfigOpts = &gvisorcmd.ConfigOptions{}
+
 		// options for the health care controller
 		healthCheckCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
@@ -60,6 +63,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			restOpts,
 			mgrOpts,
 			gvisorCtrlOpts,
+			gvisorConfigOpts,
 			controllercmd.PrefixOption("healthcheck-", healthCheckCtrlOpts),
 			controllercmd.PrefixOption("heartbeat-", heartbeatCtrlOpts),
 			reconcileOpts,
@@ -102,6 +106,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.IgnoreOperationAnnotation)
 			gvisorcontroller.DefaultAddOptions.ExtensionClasses = generalOpts.Completed().ExtensionClasses
 			gvisorCtrlOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.Controller)
+			gvisorConfigOpts.Completed().Apply(&gvisorcontroller.DefaultAddOptions.Config)
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
 			if err := gvisorcontroller.AddToManager(ctx, mgr); err != nil {
