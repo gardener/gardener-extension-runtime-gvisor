@@ -1,0 +1,37 @@
+apiVersion: testmachinery.sapcloud.io
+kind: TestDefinition
+metadata:
+  name: gvisor-cpu-qualification
+spec:
+  owner: gardener-oq@listserv.sap.com
+  description: |
+    Qualifies gVisor runtime on standard compute workers.
+    Validates RuntimeClass, containerd config, runsc binaries, and pod execution
+    inside gVisor sandbox (reuses existing gVisor beta serial tests).
+
+  activeDeadlineSeconds: 1800
+  labels: ["shoot", "cpu", "qualification"]
+  behavior:
+  - serial
+
+  command: [bash, -c]
+  args:
+    - >-
+      go test -timeout=0 ./test/integration/suites
+      --v -ginkgo.v -ginkgo.progress -ginkgo.no-color
+      --report-file=$TM_EXPORT_PATH/report.json
+      -kubecfg=$TM_KUBECONFIG_PATH/gardener.config
+      -project-namespace=$PROJECT_NAMESPACE
+      -shoot-name=$SHOOT_NAME
+      -ginkgo.focus="\[BETA\].*\[SERIAL\]"
+      -ginkgo.skip="\[DISRUPTIVE\]|GPU"
+
+  image: golang:1.26.5
+
+  config:
+    - type: env
+      name: GVISOR_VERSION
+      value: ""
+    - type: env
+      name: TEST_IMAGE_TAG
+      value: ""

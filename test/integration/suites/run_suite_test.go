@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	_ "github.com/gardener/gardener-extension-runtime-gvisor/test/integration/container-runtime"
+	_ "github.com/gardener/gardener-extension-runtime-gvisor/test/integration/gpu-qualification"
 )
 
 var (
