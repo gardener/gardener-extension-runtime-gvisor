@@ -1,0 +1,39 @@
+apiVersion: testmachinery.sapcloud.io
+kind: TestDefinition
+metadata:
+  name: gvisor-gpu-qualification
+spec:
+  owner: gardener-oq@listserv.sap.com
+  description: |
+    Qualifies gVisor runtime with NVIDIA GPU passthrough (nvproxy).
+    Installs NVIDIA driver via gardenlinux-nvidia-installer, then runs hashcat
+    GPU benchmark inside gVisor sandbox to verify GPU compute works.
+
+  activeDeadlineSeconds: 2400
+  labels: ["shoot", "gpu", "nvidia", "qualification"]
+  behavior:
+  - serial
+
+  command: [bash, -c]
+  args:
+    - >-
+      go test -timeout=0 ./test/integration/suites
+      --v -ginkgo.v -ginkgo.progress -ginkgo.no-color
+      --report-file=$TM_EXPORT_PATH/report.json
+      -kubecfg=$TM_KUBECONFIG_PATH/gardener.config
+      -project-namespace=$PROJECT_NAMESPACE
+      -shoot-name=$SHOOT_NAME
+      -ginkgo.focus="gVisor GPU qualification"
+
+  image: golang:1.26.5
+
+  config:
+    - type: env
+      name: NVIDIA_INSTALLER_VERSION
+      value: "1.14.1"
+    - type: env
+      name: GVISOR_VERSION
+      value: ""
+    - type: env
+      name: TEST_IMAGE_TAG
+      value: ""
