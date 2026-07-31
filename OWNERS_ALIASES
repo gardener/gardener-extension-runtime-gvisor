@@ -5,7 +5,9 @@ aliases:
   - MrBatschner
   - Roncossek
   - Vincinator
+  - MartinWeindel
   gardener-extension-runtime-gvisor-approvers:
   - MrBatschner
   - Roncossek
   - Vincinator
+  - MartinWeindel
