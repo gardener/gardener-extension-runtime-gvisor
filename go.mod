@@ -1,6 +1,6 @@
 module github.com/gardener/gardener-extension-runtime-gvisor
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/elastic/crd-ref-docs v0.3.0
