@@ -109,6 +109,7 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
 .PHONY: generate
 generate: $(CONTROLLER_GEN) $(EXTENSION_GEN) $(CRD_REF_DOCS) $(HELM) $(KUSTOMIZE) $(MOCKGEN) $(YQ)
 	@REPO_ROOT=$(REPO_ROOT) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./example/... ./pkg/...
+	@GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-renovate-ignore-deps.sh
 	$(MAKE) format
 
 .PHONY: format
