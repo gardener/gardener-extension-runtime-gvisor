@@ -12,7 +12,7 @@
     "gomodTidy",
   ],
   "postUpgradeTasks": {
-    commands: ['make generate'],
+    commands: ['make generate MODE=sequential'],
   },
   "separateMinorPatch": true,
   "packageRules": [
