@@ -9,12 +9,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"time"
 
 	kubernetesclient "github.com/gardener/gardener/pkg/client/kubernetes"
+	"github.com/gardener/gardener/pkg/utils/kubernetes/health"
+	"github.com/gardener/gardener/pkg/utils/retry"
 	"github.com/gardener/gardener/test/framework"
-	"github.com/onsi/ginkgo/v2"
-	g "github.com/onsi/gomega"
+	"github.com/go-logr/logr"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -27,6 +31,8 @@ import (
 const (
 	gVisorRuntimeClassName = "gvisor"
 	gpuResourceName        = "nvidia.com/gpu"
+	defaultPollInterval    = 5 * time.Second
+	defaultTimeout         = 5 * time.Minute
 )
 
 // GPUMachineTypes lists machine types with NVIDIA GPUs supported for qualification.
@@ -37,7 +43,7 @@ var GPUMachineTypes = []string{
 
 var gpuTimeout = 40 * time.Minute
 
-var _ = ginkgo.Describe("gVisor GPU qualification", func() {
+var _ = Describe("gVisor GPU qualification", func() {
 	f := framework.NewShootFramework(nil)
 
 	f.Beta().Serial().CIt("should run GPU workload inside gVisor sandbox with nvproxy", func(ctx context.Context) {
@@ -48,57 +54,52 @@ var _ = ginkgo.Describe("gVisor GPU qualification", func() {
 			nvidiaInstallerVersion = "1.14.1"
 		}
 
-		ginkgo.By("verifying shoot has GPU worker pool with gVisor")
+		By("verifying shoot has GPU worker pool with gVisor")
 		hasGPUWorker := false
 		for _, worker := range shoot.Spec.Provider.Workers {
-			for _, gpuType := range GPUMachineTypes {
-				if worker.Machine.Type == gpuType {
-					hasGPUWorker = true
-					break
-				}
+			if slices.Contains(GPUMachineTypes, worker.Machine.Type) {
+				hasGPUWorker = true
 			}
 		}
 		if !hasGPUWorker {
-			ginkgo.Skip(fmt.Sprintf("shoot does not have a GPU worker pool (supported: %v)", GPUMachineTypes))
+			Skip(fmt.Sprintf("shoot does not have a GPU worker pool (supported: %v)", GPUMachineTypes))
 		}
 
-		ginkgo.By("verifying gVisor RuntimeClass exists")
+		By("verifying gVisor RuntimeClass exists")
 		runtimeClass := &metav1.PartialObjectMetadata{}
 		runtimeClass.SetGroupVersionKind(metav1.SchemeGroupVersion.WithKind("RuntimeClass"))
 		err := f.ShootClient.Client().Get(ctx, client.ObjectKey{Name: gVisorRuntimeClassName}, runtimeClass)
 		framework.ExpectNoError(err)
 
-		ginkgo.By(fmt.Sprintf("installing NVIDIA driver via gardenlinux-nvidia-installer %s", nvidiaInstallerVersion))
+		By(fmt.Sprintf("installing NVIDIA driver via gardenlinux-nvidia-installer %s", nvidiaInstallerVersion))
 		err = installNvidiaDriver(ctx, f, nvidiaInstallerVersion)
 		framework.ExpectNoError(err)
 
-		ginkgo.By("waiting for nvidia.com/gpu resources on nodes")
+		By("waiting for nvidia.com/gpu resources on nodes")
 		err = waitForGPUResources(ctx, f, 10*time.Minute)
 		framework.ExpectNoError(err)
 
-		ginkgo.By("deploying GPU test pod with gVisor runtime (hashcat benchmark)")
+		By("deploying GPU test pod with gVisor runtime (hashcat benchmark)")
 		gpuPod, err := deployGPUTestPod(ctx, f.ShootClient.Client())
 		framework.ExpectNoError(err)
 
 		defer func(ctx context.Context) {
-			ginkgo.By("cleaning up GPU test pod")
+			By("cleaning up GPU test pod")
 			_ = f.ShootClient.Client().Delete(ctx, gpuPod)
 		}(ctx)
 
-		ginkgo.By("waiting for GPU test pod to complete")
-		err = framework.WaitUntilPodIsRunningOrSucceeded(ctx, f.Logger, gpuPod.Name, gpuPod.Namespace, f.ShootClient)
+		By("waiting for GPU test pod to complete")
+		err = waitUntilPodCompleted(ctx, f.Logger, gpuPod.Name, gpuPod.Namespace, f.ShootClient, defaultTimeout)
 		framework.ExpectNoError(err)
 
-		// Wait for completion (pod has restartPolicy: Never)
-		g.Eventually(func() corev1.PodPhase {
-			p := &corev1.Pod{}
-			if err := f.ShootClient.Client().Get(ctx, client.ObjectKeyFromObject(gpuPod), p); err != nil {
-				return corev1.PodUnknown
-			}
-			return p.Status.Phase
-		}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(g.Equal(corev1.PodSucceeded))
+		// check if succeeded
+		p := &corev1.Pod{}
+		if err := f.ShootClient.Client().Get(ctx, client.ObjectKeyFromObject(gpuPod), p); err != nil {
+			framework.ExpectNoError(err)
+		}
+		Expect(p.Status.Phase).To(Equal(corev1.PodSucceeded))
 
-		ginkgo.By("validating GPU test output")
+		By("validating GPU test output")
 		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(
 			ctx, gpuPod.Namespace, gpuPod.Name, gpuPod.Spec.Containers[0].Name,
 			"cat", "/tmp/result.txt",
@@ -106,15 +107,37 @@ var _ = ginkgo.Describe("gVisor GPU qualification", func() {
 		// If exec fails because pod completed, read logs instead
 		if err != nil {
 			logReader, logErr := f.ShootClient.Kubernetes().CoreV1().Pods(gpuPod.Namespace).GetLogs(gpuPod.Name, &corev1.PodLogOptions{}).Stream(ctx)
-			g.Expect(logErr).ToNot(g.HaveOccurred())
-			defer logReader.Close()
+			Expect(logErr).ToNot(HaveOccurred())
+			defer func() { _ = logReader.Close() }()
 			stdout = logReader
 		}
 		response, err := io.ReadAll(stdout)
-		g.Expect(err).ToNot(g.HaveOccurred())
-		g.Expect(string(response)).To(g.ContainSubstring("GPU_TEST_PASSED"))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(response)).To(ContainSubstring("GPU_TEST_PASSED"))
 	}, gpuTimeout)
 })
+
+// waitUntilPodCompleted waits until the pod with <podName> is completed
+func waitUntilPodCompleted(ctx context.Context, log logr.Logger, name, namespace string, c kubernetesclient.Interface, timeout time.Duration) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return retry.Until(timeoutCtx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
+		pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+		podLog := log.WithValues("pod", client.ObjectKeyFromObject(pod))
+
+		if err := c.Client().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pod); err != nil {
+			return retry.SevereError(err)
+		}
+
+		if !health.IsPodCompleted(pod.Status.Conditions) {
+			podLog.Info("Waiting for Pod to be completed")
+			return retry.MinorError(fmt.Errorf(`pod "%s/%s" is not completed`, namespace, name))
+		}
+
+		podLog.Info("Pod is completed now")
+		return retry.Ok()
+	})
+}
 
 // installNvidiaDriver installs the NVIDIA GPU Operator via helm using the
 // gardenlinux-nvidia-installer values file. This deploys pre-compiled driver
@@ -158,15 +181,17 @@ func installNvidiaDriver(ctx context.Context, f *framework.ShootFramework, versi
 	}
 
 	// Wait for helm pod to succeed
-	return framework.WaitUntilPodCompleted(ctx, f.Logger, helmPod.Name, helmPod.Namespace, f.ShootClient)
+	return waitUntilPodCompleted(ctx, f.Logger, helmPod.Name, helmPod.Namespace, f.ShootClient, defaultTimeout)
 }
 
 // waitForGPUResources waits until at least one node advertises nvidia.com/gpu > 0.
 func waitForGPUResources(ctx context.Context, f *framework.ShootFramework, timeout time.Duration) error {
-	return framework.WaitForCondition(ctx, f.Logger, timeout, 15*time.Second, func() (bool, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return retry.Until(timeoutCtx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
 		nodeList := &corev1.NodeList{}
 		if err := f.ShootClient.Client().List(ctx, nodeList); err != nil {
-			return false, err
+			return retry.SevereError(err)
 		}
 		for _, node := range nodeList.Items {
 			if gpuQuantity, ok := node.Status.Allocatable[corev1.ResourceName(gpuResourceName)]; ok {
