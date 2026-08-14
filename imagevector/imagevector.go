@@ -18,15 +18,16 @@ var (
 	//go:embed images.yaml
 	ImagesYAML  string
 	imageVector imagevector.ImageVector
+	caBundle    *imagevector.CABundle
 )
 
 func init() {
 	var err error
 
-	imageVector, err = imagevector.Read([]byte(ImagesYAML))
+	imageVector, caBundle, err = imagevector.Read([]byte(ImagesYAML))
 	runtime.Must(err)
 	// image vector for components deployed by the gVisor extension
-	imageVector, err = imagevector.WithEnvOverride(imageVector, imagevector.OverrideEnv)
+	imageVector, caBundle, err = imagevector.WithEnvOverride(imageVector, caBundle, imagevector.OverrideEnv)
 	runtime.Must(err)
 
 	_, err = imageVector.FindImage(gvisor.RuntimeGVisorInstallationImageName)
