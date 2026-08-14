@@ -30,17 +30,7 @@ linters:
     rules:
       - linters:
           - staticcheck
-        text: 'SA1019:'
-      - path: (.+)\.go$
-        text: var-naming
-      - path: (.+)\.go$
-        text: dot-imports
-      - path: (.+)\.go$
-        text: package-comments
-      - path: (.+)\.go$
-        text: indent-error-flow
-      - path: (.+)\.go$
-        text: 'exported: (type|func) name will be used as .* by other packages, and that stutters;'
+        text: 'ST1001:' # should not use dot imports
     paths:
       - third_party$
       - builtin$

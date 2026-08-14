@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -152,13 +151,13 @@ var _ = Describe("Controller tests", func() {
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResource), managedResource)).To(Succeed())
 			managedResourceSecret.Name = managedResource.Spec.SecretRefs[0].Name
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceSecret), managedResourceSecret)).To(Succeed())
-			Expect(managedResourceSecret.Immutable).To(Equal(pointer.Bool(true)))
+			Expect(managedResourceSecret.Immutable).To(Equal(new(true)))
 			Expect(managedResourceSecret.Data).To(HaveLen(1))
 
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceInstall), managedResourceInstall)).To(Succeed())
 			managedResourceInstallSecret.Name = managedResourceInstall.Spec.SecretRefs[0].Name
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceInstallSecret), managedResourceInstallSecret)).To(Succeed())
-			Expect(managedResourceInstallSecret.Immutable).To(Equal(pointer.Bool(true)))
+			Expect(managedResourceInstallSecret.Immutable).To(Equal(new(true)))
 			Expect(managedResourceInstallSecret.Data).To(HaveLen(1))
 		}
 
@@ -171,19 +170,19 @@ var _ = Describe("Controller tests", func() {
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResource), managedResource)).To(Succeed())
 			managedResourceSecret.Name = managedResource.Spec.SecretRefs[0].Name
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceSecret), managedResourceSecret)).To(Succeed())
-			Expect(managedResourceSecret.Immutable).To(Equal(pointer.Bool(true)))
+			Expect(managedResourceSecret.Immutable).To(Equal(new(true)))
 			Expect(managedResourceSecret.Data).To(HaveLen(1))
 
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceInstall), managedResourceInstall)).To(Succeed())
 			managedResourceInstallSecret.Name = managedResourceInstall.Spec.SecretRefs[0].Name
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceInstallSecret), managedResourceInstallSecret)).To(Succeed())
-			Expect(managedResourceInstallSecret.Immutable).To(Equal(pointer.Bool(true)))
+			Expect(managedResourceInstallSecret.Immutable).To(Equal(new(true)))
 			Expect(managedResourceInstallSecret.Data).To(HaveLen(1))
 
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceInstall2), managedResourceInstall2)).To(Succeed())
 			managedResourceInstall2Secret.Name = managedResourceInstall2.Spec.SecretRefs[0].Name
 			Expect(c.Get(ctx, client.ObjectKeyFromObject(managedResourceInstall2Secret), managedResourceInstall2Secret)).To(Succeed())
-			Expect(managedResourceInstall2Secret.Immutable).To(Equal(pointer.Bool(true)))
+			Expect(managedResourceInstall2Secret.Immutable).To(Equal(new(true)))
 			Expect(managedResourceInstall2Secret.Data).To(HaveLen(1))
 		}
 
