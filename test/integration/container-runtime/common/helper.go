@@ -18,6 +18,7 @@ import (
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
 )
 
+// GVisorContainerRuntimeName is the container runtime type name used to identify gVisor nodes and worker pools.
 const GVisorContainerRuntimeName = "gvisor"
 
 // supportsGVisor checks whether the given workerImage supports gVisor as container runtime
