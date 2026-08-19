@@ -138,17 +138,20 @@ var _ = Describe("gVisor GPU qualification", func() {
 		err = waitUntilPodCompleted(ctx, f.Logger, gpuPod.Name, gpuPod.Namespace, f.ShootClient, defaultTimeout)
 		framework.ExpectNoError(err)
 
-		// check if succeeded
-		p := &corev1.Pod{}
-		err = f.ShootClient.Client().Get(ctx, client.ObjectKeyFromObject(gpuPod), p)
-		framework.ExpectNoError(err)
-		if p.Status.Phase != corev1.PodSucceeded {
+		// check if succeeded. Poll with Eventually to tolerate watch/cache delays: the
+		// PodCompleted condition can be observed before Status.Phase has propagated to
+		// PodSucceeded in the client's cache.
+		Eventually(ctx, func(g Gomega) corev1.PodPhase {
+			p := &corev1.Pod{}
+			g.Expect(f.ShootClient.Client().Get(ctx, client.ObjectKeyFromObject(gpuPod), p)).To(Succeed())
+			return p.Status.Phase
+		}).WithPolling(1*time.Second).WithTimeout(30*time.Second).Should(Equal(corev1.PodSucceeded), func() string {
 			logs, logErr := fetchPodLogs(ctx, f.ShootClient, gpuPod.Name, gpuPod.Namespace)
 			if logErr != nil {
-				framework.ExpectNoError(fmt.Errorf("pod %q phase is %q, expected %q; additionally, failed to get pod logs: %w", gpuPod.Namespace+"/"+gpuPod.Name, p.Status.Phase, corev1.PodSucceeded, logErr))
+				return fmt.Sprintf("pod %q did not reach phase %q; additionally, failed to get pod logs: %v", gpuPod.Namespace+"/"+gpuPod.Name, corev1.PodSucceeded, logErr)
 			}
-			framework.ExpectNoError(fmt.Errorf("pod %q phase is %q, expected %q; logs:\n%s", gpuPod.Namespace+"/"+gpuPod.Name, p.Status.Phase, corev1.PodSucceeded, logs))
-		}
+			return fmt.Sprintf("pod %q did not reach phase %q; logs:\n%s", gpuPod.Namespace+"/"+gpuPod.Name, corev1.PodSucceeded, logs)
+		})
 
 		By("validating GPU test output")
 		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(
