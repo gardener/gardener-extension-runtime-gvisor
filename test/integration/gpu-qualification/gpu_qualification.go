@@ -6,12 +6,14 @@ package gpu_qualification
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"slices"
 	"time"
 
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	kubernetesclient "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/kubernetes/health"
 	"github.com/gardener/gardener/pkg/utils/retry"
@@ -21,14 +23,27 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/node/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/gardener-extension-runtime-gvisor/test/integration/container-runtime/common"
 )
 
 const (
+	defaultNvidiaInstallerVersion = "1.16.0"
+	// alpineHelmImage is the Alpine-based Helm image used to run the helm
+	// installer Pod that deploys the NVIDIA gpu-operator into the shoot cluster.
+	// To mirror/update the image in the repository, you can use:
+	// `docker buildx imagetools create --tag europe-docker.pkg.dev/gardener-project/releases/3rd/alpine-helm:3.21.4 alpine/helm:3.21.4`
+	alpineHelmImage = "europe-docker.pkg.dev/gardener-project/releases/3rd/alpine/helm:3.21.4"
+	gpuHashCatImage = "nvidia/cuda:12.2.0-runtime-ubuntu22.04"
+
 	gVisorRuntimeClassName = "gvisor"
 	gpuResourceName        = "nvidia.com/gpu"
 	defaultPollInterval    = 5 * time.Second
@@ -49,26 +64,59 @@ var _ = Describe("gVisor GPU qualification", func() {
 	f.Beta().Serial().CIt("should run GPU workload inside gVisor sandbox with nvproxy", func(ctx context.Context) {
 		shoot := f.Shoot
 
+		msg, skip, err := common.SkipGVisor(ctx, f)
+		Expect(err).ToNot(HaveOccurred())
+		if skip {
+			Skip(msg)
+		}
+
+		By(msg)
+
 		nvidiaInstallerVersion := os.Getenv("NVIDIA_INSTALLER_VERSION")
 		if nvidiaInstallerVersion == "" {
-			nvidiaInstallerVersion = "1.14.1"
+			nvidiaInstallerVersion = defaultNvidiaInstallerVersion
 		}
 
 		By("verifying shoot has GPU worker pool with gVisor")
-		hasGPUWorker := false
-		for _, worker := range shoot.Spec.Provider.Workers {
-			if slices.Contains(GPUMachineTypes, worker.Machine.Type) {
-				hasGPUWorker = true
+		gpuWorkerPoolMachineType := os.Getenv("GPU_WORKER_POOL_MACHINE_TYPE")
+		var gpuWorker *gardencorev1beta1.Worker
+		if gpuWorkerPoolMachineType == "" {
+			for _, worker := range shoot.Spec.Provider.Workers {
+				if slices.Contains(GPUMachineTypes, worker.Machine.Type) {
+					gpuWorker = &worker
+					break
+				}
 			}
-		}
-		if !hasGPUWorker {
-			Skip(fmt.Sprintf("shoot does not have a GPU worker pool (supported: %v)", GPUMachineTypes))
+			if gpuWorker == nil {
+				// if GPU_WORKER_POOL_MACHINE_TYPE is provided, a worker pool is created
+				Skip(fmt.Sprintf("shoot does not have a GPU worker pool (supported: %v)", GPUMachineTypes))
+			}
+		} else {
+			for _, worker := range shoot.Spec.Provider.Workers {
+				if worker.Machine.Type == gpuWorkerPoolMachineType {
+					gpuWorker = &worker
+					break
+				}
+			}
+
+			if gpuWorker == nil {
+				cfg, err := common.NewTestWorker(true, true)
+				Expect(err).ToNot(HaveOccurred())
+
+				testWorker := cfg.ConfigureWorkerForTesting(f)
+
+				defer func(ctx context.Context, workerPoolName string) {
+					By("removing gVisor worker pool after test execution")
+					common.RemoveWorkerPool(ctx, f, workerPoolName)
+				}(ctx, testWorker.Name)
+
+				Expect(common.AddWorkerPool(ctx, f, testWorker)).ToNot(HaveOccurred())
+			}
 		}
 
 		By("verifying gVisor RuntimeClass exists")
-		runtimeClass := &metav1.PartialObjectMetadata{}
-		runtimeClass.SetGroupVersionKind(metav1.SchemeGroupVersion.WithKind("RuntimeClass"))
-		err := f.ShootClient.Client().Get(ctx, client.ObjectKey{Name: gVisorRuntimeClassName}, runtimeClass)
+		runtimeClass := &v1.RuntimeClass{}
+		err = f.ShootClient.Client().Get(ctx, client.ObjectKey{Name: gVisorRuntimeClassName}, runtimeClass)
 		framework.ExpectNoError(err)
 
 		By(fmt.Sprintf("installing NVIDIA driver via gardenlinux-nvidia-installer %s", nvidiaInstallerVersion))
@@ -94,10 +142,15 @@ var _ = Describe("gVisor GPU qualification", func() {
 
 		// check if succeeded
 		p := &corev1.Pod{}
-		if err := f.ShootClient.Client().Get(ctx, client.ObjectKeyFromObject(gpuPod), p); err != nil {
-			framework.ExpectNoError(err)
+		err = f.ShootClient.Client().Get(ctx, client.ObjectKeyFromObject(gpuPod), p)
+		framework.ExpectNoError(err)
+		if p.Status.Phase != corev1.PodSucceeded {
+			logs, logErr := fetchPodLogs(ctx, f.ShootClient, gpuPod.Name, gpuPod.Namespace)
+			if logErr != nil {
+				framework.ExpectNoError(fmt.Errorf("pod %q phase is %q, expected %q; additionally, failed to get pod logs: %w", gpuPod.Namespace+"/"+gpuPod.Name, p.Status.Phase, corev1.PodSucceeded, logErr))
+			}
+			framework.ExpectNoError(fmt.Errorf("pod %q phase is %q, expected %q; logs:\n%s", gpuPod.Namespace+"/"+gpuPod.Name, p.Status.Phase, corev1.PodSucceeded, logs))
 		}
-		Expect(p.Status.Phase).To(Equal(corev1.PodSucceeded))
 
 		By("validating GPU test output")
 		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(
@@ -117,16 +170,22 @@ var _ = Describe("gVisor GPU qualification", func() {
 	}, gpuTimeout)
 })
 
-// waitUntilPodCompleted waits until the pod with <podName> is completed
+// waitUntilPodCompleted waits until the pod with <podName> is completed successfully.
+// If the pod does not complete in time or does not succeed, the pod logs are fetched
+// and joined into the returned error to aid debugging.
 func waitUntilPodCompleted(ctx context.Context, log logr.Logger, name, namespace string, c kubernetesclient.Interface, timeout time.Duration) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	return retry.Until(timeoutCtx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
+	err := retry.Until(timeoutCtx, defaultPollInterval, func(ctx context.Context) (done bool, err error) {
 		pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 		podLog := log.WithValues("pod", client.ObjectKeyFromObject(pod))
 
 		if err := c.Client().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pod); err != nil {
 			return retry.SevereError(err)
+		}
+
+		if pod.Status.Phase == corev1.PodFailed {
+			return retry.SevereError(fmt.Errorf(`pod "%s/%s" failed`, namespace, name))
 		}
 
 		if !health.IsPodCompleted(pod.Status.Conditions) {
@@ -137,6 +196,31 @@ func waitUntilPodCompleted(ctx context.Context, log logr.Logger, name, namespace
 		podLog.Info("Pod is completed now")
 		return retry.Ok()
 	})
+
+	if err != nil {
+		logs, logErr := fetchPodLogs(ctx, c, name, namespace)
+		if logErr != nil {
+			return errors.Join(err, fmt.Errorf("additionally, failed to get logs of pod %q: %w", namespace+"/"+name, logErr))
+		}
+		return errors.Join(err, fmt.Errorf("logs of pod %q:\n%s", namespace+"/"+name, logs))
+	}
+
+	return nil
+}
+
+// fetchPodLogs streams and returns the logs of the given pod.
+func fetchPodLogs(ctx context.Context, c kubernetesclient.Interface, name, namespace string) (string, error) {
+	logReader, err := c.Kubernetes().CoreV1().Pods(namespace).GetLogs(name, &corev1.PodLogOptions{}).Stream(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = logReader.Close() }()
+
+	logs, err := io.ReadAll(logReader)
+	if err != nil {
+		return "", err
+	}
+	return string(logs), nil
 }
 
 // installNvidiaDriver installs the NVIDIA GPU Operator via helm using the
@@ -149,18 +233,27 @@ func installNvidiaDriver(ctx context.Context, f *framework.ShootFramework, versi
 		version,
 	)
 
+	// The helm install needs cluster-wide permissions to manage the gpu-operator
+	// installation (create namespaces, CRDs, RBAC, etc.). The default service
+	// account is not allowed to do so, so create a dedicated service account
+	// bound to the cluster-admin ClusterRole.
+	saName := "nvidia-installer"
+	if err := ensureHelmServiceAccount(ctx, f.ShootClient.Client(), saName, "default"); err != nil {
+		return err
+	}
+
 	helmPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "nvidia-installer-",
 			Namespace:    "default",
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: "default",
+			ServiceAccountName: saName,
 			RestartPolicy:      corev1.RestartPolicyNever,
 			Containers: []corev1.Container{
 				{
 					Name:  "helm",
-					Image: "europe-docker.pkg.dev/gardener-project/releases/3rd/alpine/helm:3.16.4",
+					Image: alpineHelmImage,
 					Command: []string{"sh", "-c", fmt.Sprintf(`
 						set -e
 						helm repo add nvidia https://helm.ngc.nvidia.com/nvidia
@@ -182,6 +275,44 @@ func installNvidiaDriver(ctx context.Context, f *framework.ShootFramework, versi
 
 	// Wait for helm pod to succeed
 	return waitUntilPodCompleted(ctx, f.Logger, helmPod.Name, helmPod.Namespace, f.ShootClient, defaultTimeout)
+}
+
+// ensureHelmServiceAccount creates a ServiceAccount in the given namespace and
+// binds it to the cluster-admin ClusterRole so that the helm pod can manage the
+// cluster-wide resources required by the NVIDIA GPU Operator.
+func ensureHelmServiceAccount(ctx context.Context, c client.Client, name, namespace string) error {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	if err := c.Create(ctx, sa); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name + "-cluster-admin",
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      name,
+				Namespace: namespace,
+			},
+		},
+	}
+	if err := c.Create(ctx, crb); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
 }
 
 // waitForGPUResources waits until at least one node advertises nvidia.com/gpu > 0.
@@ -216,12 +347,12 @@ func deployGPUTestPod(ctx context.Context, c client.Client) (*corev1.Pod, error)
 			},
 		},
 		Spec: corev1.PodSpec{
-			RuntimeClassName: ptr.To(gVisorRuntimeClassName),
+			RuntimeClassName: new(gVisorRuntimeClassName),
 			RestartPolicy:    corev1.RestartPolicyNever,
 			Containers: []corev1.Container{
 				{
 					Name:  "gpu-hashcat",
-					Image: "nvidia/cuda:12.2.0-runtime-ubuntu22.04",
+					Image: gpuHashCatImage,
 					Command: []string{"bash", "-c", `
 						set -e
 						echo "=== gVisor GPU Test (hashcat) ==="
