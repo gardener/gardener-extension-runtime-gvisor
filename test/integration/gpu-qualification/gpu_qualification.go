@@ -103,14 +103,12 @@ var _ = Describe("gVisor GPU qualification", func() {
 				cfg, err := common.NewTestWorker(true, true)
 				Expect(err).ToNot(HaveOccurred())
 
-				testWorker := cfg.ConfigureWorkerForTesting(f)
-
-				defer func(ctx context.Context, workerPoolName string) {
-					By("removing gVisor worker pool after test execution")
-					common.RemoveWorkerPool(ctx, f, workerPoolName)
-				}(ctx, testWorker.Name)
-
-				Expect(common.AddWorkerPool(ctx, f, testWorker)).ToNot(HaveOccurred())
+				_, cleanup := common.AddTestWorkerPool(ctx, f, cfg)
+				defer cleanup()
+			} else {
+				By("verifying pre-existing GPU worker pool has gVisor runtime with nvproxy")
+				Expect(common.HasGVisorRuntime(gpuWorker, true)).To(BeTrue(),
+					"pre-existing worker pool %q (machine type %q) must have the gVisor container runtime with nvproxy enabled for GPU qualification", gpuWorker.Name, gpuWorkerPoolMachineType)
 			}
 		}
 

@@ -11,6 +11,8 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/test/framework"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/gardener/gardener-extension-runtime-gvisor/pkg/gvisor"
@@ -97,6 +99,21 @@ func AddWorkerPool(ctx context.Context, f *framework.ShootFramework, worker *gar
 	})
 }
 
+// AddTestWorkerPool derives a test worker pool from the given config, adds it to the shoot, and
+// returns a cleanup function that removes it again. The caller should `defer` the returned function
+// so the pool is removed even if the test fails after this call.
+func AddTestWorkerPool(ctx context.Context, f *framework.ShootFramework, cfg *WorkerConfig) (worker *gardencorev1beta1.Worker, cleanup func()) {
+	testWorker := cfg.ConfigureWorkerForTesting(f)
+
+	cleanup = func() {
+		By("removing gVisor worker pool after test execution")
+		RemoveWorkerPool(ctx, f, testWorker.Name)
+	}
+
+	Expect(AddWorkerPool(ctx, f, testWorker)).ToNot(HaveOccurred())
+	return testWorker, cleanup
+}
+
 // RemoveWorkerPool removes the worker pool with the given name from the shoot spec and waits for reconciliation.
 func RemoveWorkerPool(ctx context.Context, f *framework.ShootFramework, workerPoolName string) {
 	err := f.UpdateShoot(ctx, func(s *gardencorev1beta1.Shoot) error {
@@ -108,6 +125,21 @@ func RemoveWorkerPool(ctx context.Context, f *framework.ShootFramework, workerPo
 			workers = append(workers, worker)
 		}
 		s.Spec.Provider.Workers = workers
+		return nil
+	})
+	framework.ExpectNoError(err)
+}
+
+// SetWorkerContainerRuntimes replaces the container runtimes of the worker pool with the given name
+// and waits for the shoot to be reconciled. Passing an empty slice removes all container runtimes
+// (e.g. gVisor) from the pool.
+func SetWorkerContainerRuntimes(ctx context.Context, f *framework.ShootFramework, workerPoolName string, containerRuntimes []gardencorev1beta1.ContainerRuntime) {
+	err := f.UpdateShoot(ctx, func(s *gardencorev1beta1.Shoot) error {
+		for i := range s.Spec.Provider.Workers {
+			if s.Spec.Provider.Workers[i].Name == workerPoolName {
+				s.Spec.Provider.Workers[i].CRI.ContainerRuntimes = containerRuntimes
+			}
+		}
 		return nil
 	})
 	framework.ExpectNoError(err)

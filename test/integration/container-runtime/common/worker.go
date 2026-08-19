@@ -6,13 +6,17 @@ package common
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/test/framework"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	configv1alpha1 "github.com/gardener/gardener-extension-runtime-gvisor/pkg/apis/config/v1alpha1"
 )
 
 // SkipGVisor checks whether the shoot's first worker pool supports the gVisor container runtime
@@ -67,6 +71,42 @@ func NewTestWorker(useGVisor, gpuMachine bool) (*WorkerConfig, error) {
 	return &cfg, nil
 }
 
+// HasGVisorRuntime reports whether the worker pool has the gVisor container runtime configured
+// in its containerd CRI. If requireNVProxy is true, it additionally requires the gVisor
+// GVisorConfiguration provider config to enable the nvproxy config flag (needed for GPU support).
+func HasGVisorRuntime(worker *gardencorev1beta1.Worker, requireNVProxy bool) bool {
+	if worker.CRI == nil {
+		return false
+	}
+
+	var gvisor *gardencorev1beta1.ContainerRuntime
+	for i := range worker.CRI.ContainerRuntimes {
+		if worker.CRI.ContainerRuntimes[i].Type == GVisorContainerRuntimeName {
+			gvisor = &worker.CRI.ContainerRuntimes[i]
+			break
+		}
+	}
+	if gvisor == nil {
+		return false
+	}
+
+	if !requireNVProxy {
+		return true
+	}
+
+	if gvisor.ProviderConfig == nil {
+		return false
+	}
+
+	var providerConfig struct {
+		ConfigFlags map[string]string `json:"configFlags"`
+	}
+	if err := json.Unmarshal(gvisor.ProviderConfig.Raw, &providerConfig); err != nil {
+		return false
+	}
+	return providerConfig.ConfigFlags["nvproxy"] == "true"
+}
+
 // WorkerConfig holds the configuration used to derive a test worker pool.
 type WorkerConfig struct {
 	// UseGVisor indicates whether the gVisor container runtime should be added to the worker pool.
@@ -95,7 +135,7 @@ func (c WorkerConfig) ConfigureWorkerForTesting(f *framework.ShootFramework) *ga
 	}
 
 	if c.UseGVisor {
-		c.addGVisor(worker, c.GPUMachineType != "")
+		c.addGVisor(f, worker, c.GPUMachineType != "")
 	}
 	if c.GPUMachineType != "" {
 		worker.Machine.Type = c.GPUMachineType
@@ -107,16 +147,26 @@ func (c WorkerConfig) ConfigureWorkerForTesting(f *framework.ShootFramework) *ga
 // addGVisor adds the gVisor container runtime to the worker's containerd CRI. If withGPU is true,
 // the gVisor config flags enable debug and nvproxy for GPU support. When a test image tag is set,
 // a GVisorConfiguration provider config referencing that tag is attached to the container runtime.
-func (c WorkerConfig) addGVisor(worker *gardencorev1beta1.Worker, withGPU bool) {
+func (c WorkerConfig) addGVisor(f *framework.ShootFramework, worker *gardencorev1beta1.Worker, withGPU bool) {
 	var providerConfig *runtime.RawExtension
 
-	configFlags := "{}"
-	if withGPU {
-		configFlags = `{"debug":"true","nvproxy":"true"}`
-	}
 	if c.TestImageTag != "" {
-		providerConfig = &runtime.RawExtension{Raw: fmt.Appendf(nil, `{"apiVersion": "gvisor.runtime.extensions.config.gardener.cloud/v1alpha1","kind": "GVisorConfiguration","testImageTag": %q,"configFlags": %s}`, c.TestImageTag, configFlags)}
-		println("Using gVisorConfiguration with image tag", c.TestImageTag, "expected gVisor version", c.ExpectedGVisorVersion)
+		configFlags := map[string]string{}
+		if withGPU {
+			configFlags = map[string]string{"debug": "true", "nvproxy": "true"}
+		}
+		gvisorConfig := &configv1alpha1.GVisorConfiguration{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: configv1alpha1.SchemeGroupVersion.String(),
+				Kind:       "GVisorConfiguration",
+			},
+			TestImageTag: &c.TestImageTag,
+			ConfigFlags:  &configFlags,
+		}
+		raw, err := json.Marshal(gvisorConfig)
+		framework.ExpectNoError(err)
+		providerConfig = &runtime.RawExtension{Raw: raw}
+		f.Logger.Info("Using gVisorConfiguration for test worker pool", "imageTag", c.TestImageTag, "expectedGVisorVersion", c.ExpectedGVisorVersion)
 	}
 
 	worker.CRI.ContainerRuntimes = []gardencorev1beta1.ContainerRuntime{

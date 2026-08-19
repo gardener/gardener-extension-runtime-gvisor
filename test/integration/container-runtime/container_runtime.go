@@ -42,16 +42,10 @@ var _ = Describe("gVisor tests", func() {
 		cfg, err := common.NewTestWorker(true, false)
 		Expect(err).ToNot(HaveOccurred())
 
-		testWorker := cfg.ConfigureWorkerForTesting(f)
-
 		By("adding gVisor worker pool")
 
-		defer func(ctx context.Context, workerPoolName string) {
-			By("removing gVisor worker pool after test execution")
-			common.RemoveWorkerPool(ctx, f, workerPoolName)
-		}(ctx, testWorker.Name)
-
-		Expect(common.AddWorkerPool(ctx, f, testWorker)).ToNot(HaveOccurred())
+		testWorker, cleanup := common.AddTestWorkerPool(ctx, f, cfg)
+		defer cleanup()
 
 		// get the nodes of the worker pool and check if the node
 		// labels of the worker pool contain the expected gVisor label
@@ -108,47 +102,15 @@ var _ = Describe("gVisor tests", func() {
 		By("test removal of gVisor from worker pool")
 		// remove gVisor from the worker pool and wait for the Shoot to be successfully reconciled.
 		// That implies that gVisor has been removed successfully.
-		removeGVisorFromWorker(ctx, f, testWorker.Name)
+		common.SetWorkerContainerRuntimes(ctx, f, testWorker.Name, nil)
 
 		By("test upgrading containerd pool to use gVisor")
-		addGVisorToWorker(ctx, f, testWorker.Name)
+		common.SetWorkerContainerRuntimes(ctx, f, testWorker.Name, []gardencorev1beta1.ContainerRuntime{
+			{Type: common.GVisorContainerRuntimeName},
+		})
 	}, gVisorTimeout)
 
 })
-
-func removeGVisorFromWorker(ctx context.Context, f *framework.ShootFramework, workerPoolName string) {
-	err := f.UpdateShoot(ctx, func(s *gardencorev1beta1.Shoot) error {
-		var workers []gardencorev1beta1.Worker
-		for _, worker := range s.Spec.Provider.Workers {
-			if worker.Name == workerPoolName {
-				worker.CRI.ContainerRuntimes = []gardencorev1beta1.ContainerRuntime{}
-			}
-			workers = append(workers, worker)
-		}
-		s.Spec.Provider.Workers = workers
-		return nil
-	})
-	framework.ExpectNoError(err)
-}
-
-func addGVisorToWorker(ctx context.Context, f *framework.ShootFramework, workerPoolName string) {
-	err := f.UpdateShoot(ctx, func(s *gardencorev1beta1.Shoot) error {
-		var workers []gardencorev1beta1.Worker
-		for _, worker := range s.Spec.Provider.Workers {
-			if worker.Name == workerPoolName {
-				worker.CRI.ContainerRuntimes = []gardencorev1beta1.ContainerRuntime{
-					{
-						Type: common.GVisorContainerRuntimeName,
-					},
-				}
-			}
-			workers = append(workers, worker)
-		}
-		s.Spec.Provider.Workers = workers
-		return nil
-	})
-	framework.ExpectNoError(err)
-}
 
 // deployGVisorPod deploys a pod using the gVisor RuntimeClass.
 func deployGVisorPod(ctx context.Context, c client.Client) (*corev1.Pod, error) {
