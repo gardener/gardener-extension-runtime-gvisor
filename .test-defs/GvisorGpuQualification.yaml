@@ -30,7 +30,7 @@ spec:
   config:
     - type: env
       name: NVIDIA_INSTALLER_VERSION
-      value: "1.14.1"
+      value: "1.16.0"
     - type: env
       name: GVISOR_VERSION
       value: ""
