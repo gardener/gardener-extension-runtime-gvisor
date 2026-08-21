@@ -123,6 +123,9 @@ var _ = Describe("gVisor GPU qualification", func() {
 
 		By("waiting for nvidia.com/gpu resources on nodes")
 		err = waitForGPUResources(ctx, f, 10*time.Minute)
+		if err != nil {
+			logNamespaceState(ctx, f.Logger, f.ShootClient.Client(), "gpu-operator")
+		}
 		framework.ExpectNoError(err)
 
 		By("deploying GPU test pod with gVisor runtime (hashcat benchmark)")
@@ -395,6 +398,29 @@ func deployGPUTestPod(ctx context.Context, c client.Client) (*corev1.Pod, error)
 		return nil, err
 	}
 	return pod, nil
+}
+
+func logNamespaceState(ctx context.Context, log logr.Logger, c client.Client, namespace string) {
+	podList := &corev1.PodList{}
+	if err := c.List(ctx, podList, client.InNamespace(namespace)); err != nil {
+		log.Error(err, "failed to list pods", "namespace", namespace)
+	} else {
+		for _, pod := range podList.Items {
+			log.Info("pod state", "namespace", namespace, "name", pod.Name, "phase", pod.Status.Phase, "conditions", pod.Status.Conditions)
+		}
+	}
+
+	eventList := &corev1.EventList{}
+	if err := c.List(ctx, eventList, client.InNamespace(namespace)); err != nil {
+		log.Error(err, "failed to list events", "namespace", namespace)
+	} else {
+		slices.SortFunc(eventList.Items, func(a, b corev1.Event) int {
+			return a.LastTimestamp.Compare(b.LastTimestamp.Time)
+		})
+		for _, event := range eventList.Items {
+			log.Info("event", "namespace", namespace, "time", event.LastTimestamp.Time, "reason", event.Reason, "message", event.Message, "type", event.Type, "involvedObject", event.InvolvedObject.Name, "count", event.Count)
+		}
+	}
 }
 
 // unused but kept for reference - would be used for DaemonSet-based driver verification
