@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	defaultNvidiaInstallerVersion = "1.16.0"
+	defaultNvidiaInstallerVersion = "1.17.0"
 	// alpineHelmImage is the Alpine-based Helm image used to run the helm
 	// installer Pod that deploys the NVIDIA gpu-operator into the shoot cluster.
 	// To mirror/update the image in the repository, you can use:
