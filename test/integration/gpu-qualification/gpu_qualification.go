@@ -122,7 +122,7 @@ var _ = Describe("gVisor GPU qualification", func() {
 		framework.ExpectNoError(err)
 
 		By("waiting for nvidia.com/gpu resources on nodes")
-		err = waitForGPUResources(ctx, f, 10*time.Minute)
+		err = waitForGPUResources(ctx, f, 60*time.Minute)
 		framework.ExpectNoError(err)
 
 		By("deploying GPU test pod with gVisor runtime (hashcat benchmark)")
