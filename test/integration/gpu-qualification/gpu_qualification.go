@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package gpu_qualification
+package gpuqualification
 
 import (
 	"context"
@@ -21,14 +21,12 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/node/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,6 +46,7 @@ const (
 	gpuResourceName        = "nvidia.com/gpu"
 	defaultPollInterval    = 5 * time.Second
 	defaultTimeout         = 5 * time.Minute
+	helmTimeout            = 600 * time.Second
 )
 
 // GPUMachineTypes lists machine types with NVIDIA GPUs supported for qualification.
@@ -91,6 +90,9 @@ var _ = Describe("gVisor GPU qualification", func() {
 				// if GPU_WORKER_POOL_MACHINE_TYPE is provided, a worker pool is created
 				Skip(fmt.Sprintf("shoot does not have a GPU worker pool (supported: %v)", GPUMachineTypes))
 			}
+			By("verifying pre-existing GPU worker pool has gVisor runtime with nvproxy")
+			Expect(common.HasGVisorRuntime(gpuWorker, true)).To(BeTrue(),
+				"pre-existing worker pool %q (machine type %q) must have the gVisor container runtime with nvproxy enabled for GPU qualification", gpuWorker.Name, gpuWorkerPoolMachineType)
 		} else {
 			for _, worker := range shoot.Spec.Provider.Workers {
 				if worker.Machine.Type == gpuWorkerPoolMachineType {
@@ -157,18 +159,10 @@ var _ = Describe("gVisor GPU qualification", func() {
 		})
 
 		By("validating GPU test output")
-		stdout, _, err := kubernetesclient.NewPodExecutor(f.ShootClient.RESTConfig()).Execute(
-			ctx, gpuPod.Namespace, gpuPod.Name, gpuPod.Spec.Containers[0].Name,
-			"cat", "/tmp/result.txt",
-		)
-		// If exec fails because pod completed, read logs instead
-		if err != nil {
-			logReader, logErr := f.ShootClient.Kubernetes().CoreV1().Pods(gpuPod.Namespace).GetLogs(gpuPod.Name, &corev1.PodLogOptions{}).Stream(ctx)
-			Expect(logErr).ToNot(HaveOccurred())
-			defer func() { _ = logReader.Close() }()
-			stdout = logReader
-		}
-		response, err := io.ReadAll(stdout)
+		logReader, logErr := f.ShootClient.Kubernetes().CoreV1().Pods(gpuPod.Namespace).GetLogs(gpuPod.Name, &corev1.PodLogOptions{}).Stream(ctx)
+		Expect(logErr).ToNot(HaveOccurred())
+		defer func() { _ = logReader.Close() }()
+		response, err := io.ReadAll(logReader)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(response)).To(ContainSubstring("GPU_TEST_PASSED"))
 	}, gpuTimeout)
@@ -265,9 +259,9 @@ func installNvidiaDriver(ctx context.Context, f *framework.ShootFramework, versi
 						helm upgrade --install gpu-operator nvidia/gpu-operator \
 							--namespace gpu-operator --create-namespace \
 							--values "%s" \
-							--wait --timeout 600s
+							--wait --timeout %ds
 						echo "NVIDIA_INSTALL_DONE"
-					`, valuesURL)},
+					`, valuesURL, int(helmTimeout.Seconds()))},
 				},
 			},
 		},
@@ -278,7 +272,7 @@ func installNvidiaDriver(ctx context.Context, f *framework.ShootFramework, versi
 	}
 
 	// Wait for helm pod to succeed
-	return waitUntilPodCompleted(ctx, f.Logger, helmPod.Name, helmPod.Namespace, f.ShootClient, defaultTimeout)
+	return waitUntilPodCompleted(ctx, f.Logger, helmPod.Name, helmPod.Namespace, f.ShootClient, helmTimeout+defaultTimeout/10)
 }
 
 // ensureHelmServiceAccount creates a ServiceAccount in the given namespace and
@@ -422,7 +416,3 @@ func logNamespaceState(ctx context.Context, log logr.Logger, c client.Client, na
 		}
 	}
 }
-
-// unused but kept for reference - would be used for DaemonSet-based driver verification
-var _ = labels.Everything
-var _ = &appsv1.DaemonSet{}
