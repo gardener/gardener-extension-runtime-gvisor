@@ -20,10 +20,24 @@ jobs:
     permissions:
       id-token: write
 
+  extra-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      extra-tags: ${{ steps.compute.outputs.extra-tags }}
+    steps:
+      - id: compute
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == bump-gvisor-to-* ]]; then
+            echo "extra-tags=latest,gv-${GITHUB_REF_NAME#bump-gvisor-to-}" >> "$GITHUB_OUTPUT"
+          else
+            echo "extra-tags=latest" >> "$GITHUB_OUTPUT"
+          fi
+
   oci-images:
     name: Build OCI-Images
     needs:
       - prepare
+      - extra-tags
     permissions:
       contents: read
       packages: write
@@ -46,7 +60,7 @@ jobs:
       oci-registry: ${{ needs.prepare.outputs.oci-registry }}
       oci-repository: ${{ matrix.args.oci-repository }}
       oci-platforms: linux/amd64,linux/arm64
-      extra-tags: latest
+      extra-tags: ${{ needs.extra-tags.outputs.extra-tags }}
 
   helmcharts:
     name: Build Helmcharts
