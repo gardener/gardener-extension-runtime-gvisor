@@ -30,3 +30,4 @@ FROM alpine:3.24.1 AS gardener-extension-runtime-gvisor-installation
 
 COPY --from=binaries-installer /usr/local/bin/containerd-shim-runsc-v1 /var/content/containerd-shim-runsc-v1
 COPY --from=binaries-installer /usr/local/bin/runsc /var/content/runsc
+COPY --from=binaries-installer /usr/local/bin/gvisor-bin /var/content/gvisor-bin
