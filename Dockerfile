@@ -18,7 +18,7 @@ COPY GVISOR_VERSION ./
 RUN hack/install-binaries.sh $(cat GVISOR_VERSION)
 
 ############# gardener-extension-runtime-gvisor
-FROM gcr.io/distroless/static-debian11:nonroot AS gardener-extension-runtime-gvisor
+FROM gcr.io/distroless/static-debian13:nonroot AS gardener-extension-runtime-gvisor
 WORKDIR /
 
 COPY charts /charts
