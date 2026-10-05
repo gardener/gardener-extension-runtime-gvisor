@@ -12,7 +12,12 @@ data:
     mkdir -p "/var/host/$BIN_TARGET_DIR"
 
     cd /var/content
-
+    # The installation container image ships three artifacts in /var/content
+    # populated at build time via Dockerfile and therefore fully under our control at runtime:
+    #   - runsc                      (the main gVisor binary)
+    #   - containerd-shim-runsc-v1   (the containerd shim)
+    #   - gvisor-bin/                (sidecar binaries, e.g. gvisor_sentry)
+    #
     # Since gVisor release 20260817.0, runsc is split into a main binary plus a
     # set of sidecar binaries (e.g. gvisor_sentry) shipped in a gvisor-bin/
     # directory. runsc re-executes these sidecars at runtime and, with the
