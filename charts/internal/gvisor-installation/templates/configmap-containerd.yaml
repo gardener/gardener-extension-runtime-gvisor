@@ -12,6 +12,39 @@ data:
     mkdir -p "/var/host/$BIN_TARGET_DIR"
 
     cd /var/content
+    # The installation container image ships three artifacts in /var/content
+    # populated at build time via Dockerfile and therefore fully under our control at runtime:
+    #   - runsc                      (the main gVisor binary)
+    #   - containerd-shim-runsc-v1   (the containerd shim)
+    #   - gvisor-bin/                (sidecar binaries, e.g. gvisor_sentry)
+    #
+    # Since gVisor release 20260817.0, runsc is split into a main binary plus a
+    # set of sidecar binaries (e.g. gvisor_sentry) shipped in a gvisor-bin/
+    # directory. runsc re-executes these sidecars at runtime and, with the
+    # default STRICT --sidecar-usage-policy (default since 20260831.0), refuses
+    # to start unless it finds them in a gvisor-bin/ directory next to its own
+    # binary. runsc lives in $BIN_TARGET_DIR, so the sidecars must be installed
+    # into $BIN_TARGET_DIR/gvisor-bin.
+    #
+    # Install the sidecars *before* runsc: since STRICT enforces version matching
+    # between runsc and its sidecars, the sidecars must already be in place before
+    # an updated runsc binary is swapped in.
+    TARGET_SIDECAR_DIR="/var/host/$BIN_TARGET_DIR/gvisor-bin"
+    if [ -d gvisor-bin ]; then
+      if [ ! -d "$TARGET_SIDECAR_DIR" ] || ! diff -r gvisor-bin "$TARGET_SIDECAR_DIR" > /dev/null 2>&1; then
+        echo "Installing gVisor sidecar binaries."
+        chmod +x gvisor-bin/*
+        # Install into a temporary directory and atomically swap it in, so runsc
+        # never observes a partially populated gvisor-bin/ directory.
+        rm -rf "${TARGET_SIDECAR_DIR}.tmp"
+        mkdir -p "${TARGET_SIDECAR_DIR}.tmp"
+        cp -a gvisor-bin/. "${TARGET_SIDECAR_DIR}.tmp/"
+        rm -rf "$TARGET_SIDECAR_DIR"
+        mv "${TARGET_SIDECAR_DIR}.tmp" "$TARGET_SIDECAR_DIR"
+      else
+        echo "gVisor sidecar binaries up to date."
+      fi
+    fi
 
     TARGET_RUNSC="/var/host/$BIN_TARGET_DIR/runsc"
     if [ ! -f "$TARGET_RUNSC" ]; then

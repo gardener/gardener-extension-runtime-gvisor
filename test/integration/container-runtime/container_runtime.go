@@ -66,6 +66,11 @@ var _ = Describe("gVisor tests", func() {
 		checkRunscBinary := []string{"sh", "-c", fmt.Sprintf("[ -f %s/%s ] && echo 'found' || echo 'Not found'", extensionsv1alpha1.ContainerDRuntimeContainersBinFolder, "runsc")}
 		executeCommand(ctx, rootPodExecutor, checkRunscBinary, "found")
 
+		// since gVisor 20260817.0, runsc requires its sidecar binaries (e.g. gvisor_sentry)
+		// in a gvisor-bin/ directory next to the runsc binary
+		checkGVisorSentryBinary := []string{"sh", "-c", fmt.Sprintf("[ -f %s/%s ] && echo 'found' || echo 'Not found'", extensionsv1alpha1.ContainerDRuntimeContainersBinFolder, "gvisor-bin/gvisor_sentry")}
+		executeCommand(ctx, rootPodExecutor, checkGVisorSentryBinary, "found")
+
 		// check expected gVisor version
 		if cfg.ExpectedGVisorVersion != "" {
 			expectedOutput := fmt.Sprintf("runsc version release-%s", cfg.ExpectedGVisorVersion)
