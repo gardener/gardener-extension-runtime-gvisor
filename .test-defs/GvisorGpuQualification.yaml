@@ -25,7 +25,7 @@ spec:
       -shoot-name=$SHOOT_NAME
       -ginkgo.focus="gVisor GPU qualification"
 
-  image: golang:1.26.5
+  image: golang:1.27.2
 
   config:
     - type: env
