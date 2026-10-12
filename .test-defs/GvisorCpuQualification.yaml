@@ -26,7 +26,7 @@ spec:
       -ginkgo.focus="\[BETA\].*\[SERIAL\]"
       -ginkgo.skip="\[DISRUPTIVE\]|GPU"
 
-  image: golang:1.26.5
+  image: golang:1.27.2
 
   config:
     - type: env
