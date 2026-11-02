@@ -188,6 +188,13 @@ var _ = Describe("Chart package test", func() {
 			Entry("panic-signal",
 				map[string]string{"panic-signal": "123"},
 				"panic-signal = \"123\"\n"),
+			Entry("network-host", map[string]string{"network": "host"}, "network = \"host\"\n"),
+			Entry("network-sandbox", map[string]string{"network": "sandbox"}, "network = \"sandbox\"\n"),
+			Entry("network-none-unsupported", map[string]string{"network": "none"}, ""),
+			Entry("network-invalid", map[string]string{"network": "foo"}, ""),
+			Entry("multiple flags are rendered in sorted order",
+				map[string]string{"panic-signal": "123", "nvproxy": "true", "network": "host", "net-raw": "true", "debug": "true"},
+				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\nnet-raw = \"true\"\nnetwork = \"host\"\nnvproxy = \"true\"\npanic-signal = \"123\"\n"),
 		)
 
 		DescribeTable("Render Gvisor installation chart with test image",
