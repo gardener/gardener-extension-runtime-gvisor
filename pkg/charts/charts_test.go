@@ -188,6 +188,9 @@ var _ = Describe("Chart package test", func() {
 			Entry("panic-signal",
 				map[string]string{"panic-signal": "123"},
 				"panic-signal = \"123\"\n"),
+			Entry("multiple flags are rendered in sorted order",
+				map[string]string{"panic-signal": "123", "nvproxy": "true", "net-raw": "true", "debug": "true"},
+				"debug = \"true\"\ndebug-log = \"/var/log/runsc/%ID%/gvisor-%COMMAND%.log\"\nnet-raw = \"true\"\nnvproxy = \"true\"\npanic-signal = \"123\"\n"),
 		)
 
 		DescribeTable("Render Gvisor installation chart with test image",

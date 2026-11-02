@@ -6,6 +6,8 @@ package charts
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 
 	v1beta1helper "github.com/gardener/gardener/pkg/api/core/v1beta1/helper"
@@ -48,7 +50,11 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 
 	runscConfigFlags := ""
 	if providerConfig.ConfigFlags != nil && len(*providerConfig.ConfigFlags) > 0 {
-		for key, value := range *providerConfig.ConfigFlags {
+		configFlags := *providerConfig.ConfigFlags
+		// iterate in sorted key order: map iteration order is random, and a changing rendering would roll the DaemonSet
+		// and restart containerd on every reconciliation
+		for _, key := range slices.Sorted(maps.Keys(configFlags)) {
+			value := configFlags[key]
 			// the API allows to set arbitrary flags, but we only allow the following flags for now
 			// A list of all supported flags can be found here: https://github.com/google/gvisor/blob/master/runsc/config/flags.go
 			// and https://github.com/google/gvisor/blob/master/runsc/config/config.go#L46
