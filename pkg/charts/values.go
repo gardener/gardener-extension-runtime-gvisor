@@ -68,6 +68,10 @@ func RenderGVisorInstallationChart(renderer chartrenderer.Interface, cr *extensi
 			if key == "nvproxy" && value == "true" {
 				runscConfigFlags += fmt.Sprintf("%s = \"%s\"\n", key, "true")
 			}
+			// "none" is deliberately not supported, as pods would be left without any network connectivity
+			if key == "network" && (value == "host" || value == "sandbox") {
+				runscConfigFlags += fmt.Sprintf("%s = %q\n", key, value)
+			}
 			if key == "panic-signal" {
 				if _, err := strconv.Atoi(value); err == nil {
 					runscConfigFlags += fmt.Sprintf("%s = %q\n", key, value)
