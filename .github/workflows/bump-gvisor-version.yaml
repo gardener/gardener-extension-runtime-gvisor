@@ -50,11 +50,25 @@ jobs:
           [[ -n "$latest_tag" ]] || { echo "No release-* tags found"; exit 1; }
           upstream_version="${latest_tag#release-}"
 
+          # Validate the upstream version shape before it flows into later shell
+          # commands and action inputs. gVisor release tags are release-YYYYMMDD.N.
+          if [[ ! "$upstream_version" =~ ^[0-9]{8}\.[0-9]+$ ]]; then
+            echo "Error: unexpected upstream version format: '$upstream_version'" >&2
+            exit 1
+          fi
+
           if [[ ! -f GVISOR_VERSION ]]; then
             echo "Error: GVISOR_VERSION file not found." >&2
             exit 1
           fi
           current_version="$(tr -d '\r\n' < GVISOR_VERSION)"
+
+          # Defense-in-depth: the committed version also flows into shell commands
+          # and action inputs below, so validate its shape as well.
+          if [[ ! "$current_version" =~ ^[0-9]{8}\.[0-9]+$ ]]; then
+            echo "Error: unexpected current version format: '$current_version'" >&2
+            exit 1
+          fi
 
           if [[ "$upstream_version" == "${current_version}" ]]; then
             echo "GVISOR_VERSION already $upstream_version — nothing to do."
