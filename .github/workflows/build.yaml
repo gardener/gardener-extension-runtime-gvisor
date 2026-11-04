@@ -28,7 +28,12 @@ jobs:
       - id: compute
         run: |
           if [[ "${GITHUB_REF_NAME}" == bump-gvisor-to-* ]]; then
-            echo "extra-tags=latest,gv-${GITHUB_REF_NAME#bump-gvisor-to-}" >> "$GITHUB_OUTPUT"
+            suffix="${GITHUB_REF_NAME#bump-gvisor-to-}"
+            if [[ ! "${suffix}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+              echo "::error::refusing to derive extra-tags from unexpected branch name '${GITHUB_REF_NAME}'"
+              exit 1
+            fi
+            echo "extra-tags=latest,gv-${suffix}" >> "$GITHUB_OUTPUT"
           else
             echo "extra-tags=latest" >> "$GITHUB_OUTPUT"
           fi
