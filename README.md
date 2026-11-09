@@ -16,7 +16,7 @@ This controller operates on the [ContainerRuntime](https://github.com/gardener/g
 
 It manages objects that are requesting (`.spec.type=gvisor`) to enable the gVisor container runtime sandbox for a worker pool of a shoot cluster.
 
-The ContainerRuntime can be configured in the shoot manifest in `.spec.povider.workers[].cri.containerRuntimes` an example can be found [here](example/shoot.yaml):
+The ContainerRuntime can be configured in the shoot manifest in `.spec.provider.workers[].cri.containerRuntimes` an example can be found [here](example/shoot.yaml):
 
 ```yaml
 kind: Shoot
