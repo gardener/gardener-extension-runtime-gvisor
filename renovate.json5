@@ -21,7 +21,38 @@
     '41898282+github-actions[bot]@users.noreply.github.com',
   ],
   separateMinorPatch: true,
+  customManagers: [
+    {
+      customType: 'regex',
+      fileMatch: [
+        '^\\.test-defs/GvisorGpuQualification\\.yaml$',
+        '^test/integration/gpu-qualification/gpu_qualification\\.go$',
+      ],
+      matchStrings: [
+        'name: NVIDIA_INSTALLER_VERSION\\s*\\n\\s*value: "(?<currentValue>[^"]+)"',
+        'defaultNvidiaInstallerVersion = "(?<currentValue>[^"]+)"',
+      ],
+      depNameTemplate: 'gardenlinux/gardenlinux-nvidia-installer',
+      datasourceTemplate: 'github-releases',
+    },
+    {
+      customType: 'regex',
+      fileMatch: [
+        '^\\.test-defs/.*\\.yaml$',
+      ],
+      matchStrings: [
+        'image: (?<depName>[^:]+):(?<currentValue>[^\\s]+)',
+      ],
+      datasourceTemplate: 'docker',
+    },
+  ],
   packageRules: [
+    {
+      groupName: 'gardenlinux-nvidia-installer',
+      matchPackageNames: [
+        'gardenlinux/gardenlinux-nvidia-installer',
+      ],
+    },
     {
       groupName: 'golang',
       matchDatasources: [
