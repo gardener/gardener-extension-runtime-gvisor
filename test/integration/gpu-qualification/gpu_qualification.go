@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	defaultNvidiaInstallerVersion = "1.24.0"
+	defaultNvidiaInstallerVersion = "1.27.1"
 	// alpineHelmImage is the Alpine-based Helm image used to run the helm
 	// installer Pod that deploys the NVIDIA gpu-operator into the shoot cluster.
 	// To mirror/update the image in the repository, you can use:
@@ -227,7 +227,9 @@ func fetchPodLogs(ctx context.Context, c kubernetesclient.Interface, name, names
 func installNvidiaDriver(ctx context.Context, f *framework.ShootFramework, version string) error {
 	// Use a pod to run helm install on the shoot cluster
 	valuesURL := fmt.Sprintf(
-		"https://raw.githubusercontent.com/gardenlinux/gardenlinux-nvidia-installer/refs/tags/%s/helm/gpu-operator-values.yaml",
+		// Use values with driver pinning.
+		// See [Add gVisor build path with nvproxy-qualified driver pinning (#334)](https://github.com/gardenlinux/gardenlinux-nvidia-installer/pull/334)
+		"https://raw.githubusercontent.com/gardenlinux/gardenlinux-nvidia-installer/refs/tags/%s/helm/gpu-operator-gvisor-values.yaml",
 		version,
 	)
 
